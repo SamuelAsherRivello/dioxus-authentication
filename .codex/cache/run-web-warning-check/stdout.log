@@ -1,0 +1,33 @@
+Stopping dx.exe process 53596 (existing Dioxus server).
+Starting web app for passkey testing on localhost.
+Passkeys: http://localhost:8080
+Laptop:   http://localhost:8080
+Phone:    not available unless you pass -Lan or this laptop's Wi-Fi IPv4 address with -Address.
+
+  0.60s  INFO -----------------------------------------------------------------
+                Serving your app: web! 🚀
+                • Press [33m`ctrl+c`[0m to exit the server
+                • Press [33m`r`[0m to rebuild the app
+                • Press [33m`p`[0m to toggle automatic rebuilds
+                • Press [33m`v`[0m to toggle verbose logging
+                • Press [33m`/`[0m for more commands and shortcuts
+                Learn more at [34mhttps://dioxuslabs.com/learn/0.7/getting_started[0m
+               ----------------------------------------------------------------
+  6.09s  INFO Build completed successfully in [33m5.49s[0m, launching app! 💫
+ 66.22s  INFO Build completed in [33m6.01s[0m
+ 71.87s  INFO Build completed in [33m4.24s[0m
+ 87.69s  INFO Build completed in [33m5.96s[0m
+ 92.96s  INFO Build completed in [33m3.94s[0m
+ 99.67s ERROR cannot borrow `auth_is_busy` as mutable, as it is not declared as mutable
+ 99.69s ERROR For more information about this error, try `rustc --explain E0596`.
+ 99.70s ERROR [31mBuild failed[0m: cargo build finished with errors for target: web [wasm32-unknown-unknown]
+124.31s ERROR cannot borrow `auth_is_busy` as mutable, as it is not declared as mutable
+124.32s ERROR For more information about this error, try `rustc --explain E0596`.
+124.34s ERROR [31mBuild failed[0m: cargo build finished with errors for target: web [wasm32-unknown-unknown]
+150.98s  INFO Build completed in [33m5.53s[0m
+151.30s  INFO Hotreloading: [32mD:\Documents\Projects\VC\Rust\dioxus-authentication\packages\ui\src\client\pages\home_page.rs[0m 
+205.05s  INFO Build completed in [33m5.85s[0m
+210.85s  INFO Build completed in [33m4.42s[0m
+1315.43s  INFO Build completed in [33m5.68s[0m
+1320.70s  INFO Build completed in [33m3.92s[0m
+1439.31s  INFO Build completed in [33m5.69s[0m

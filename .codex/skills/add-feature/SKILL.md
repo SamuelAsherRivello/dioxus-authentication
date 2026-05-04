@@ -19,9 +19,9 @@ Use this skill to carry a feature request from an initial target into working co
 Useful intake questions, only when needed:
 
 - What user action should start this feature?
-- Which route, page, or component should own the feature?
+- Which crate, entrypoint, or component should own the feature?
 - What visible result confirms it worked?
-- Should the behavior persist locally, use template data, or stay UI-only?
+- Should the behavior persist locally or stay UI-only?
 - Does it need both web and desktop support?
 
 ## Spec Path
@@ -31,7 +31,7 @@ Choose the lightest spec workflow that protects the feature:
 - Direct edit: Use for small or localized changes where the active spec already covers the feature shape.
 - `speckit-specify`: Use when the user introduces a materially new feature or the current specs do not describe it.
 - `speckit-clarify`: Use when the spec has unresolved choices that materially change scope, UX, persistence, or platform behavior.
-- `speckit-plan` and `speckit-tasks`: Use when the feature crosses multiple modules, data services, routes, or platform targets.
+- `speckit-plan` and `speckit-tasks`: Use when the feature crosses multiple modules, service boundaries, entrypoints, or platform targets.
 - `speckit-analyze`: Use after generated plan/tasks when consistency across `spec.md`, `plan.md`, and `tasks.md` matters.
 - `speckit-implement`: Use when a complete `tasks.md` exists and the user wants the planned tasks executed.
 
@@ -39,13 +39,12 @@ For direct spec edits, preserve the existing spec section order and keep require
 
 ## Implementation
 
-- Keep shared app behavior in `packages/ui`.
+- Keep reusable authentication behavior in `packages/authentication`.
 - Touch `packages/web` or `packages/desktop` only for platform entrypoints, platform-specific assets, or platform-specific runtime behavior.
-- Follow Dioxus 0.7 patterns: `#[component]`, `Element`, `use_signal`, `use_memo`, `use_resource`, `Router::<Route> {}`, owned props, and `asset!`.
+- Follow Dioxus 0.7 patterns: `#[component]`, `Element`, `use_signal`, `use_memo`, `use_resource`, owned props, and `asset!`.
 - Do not use removed Dioxus APIs such as `cx`, `Scope`, or `use_state`.
-- Preserve browser localStorage snapshots and native SQLite boundaries for template data.
-- Keep first-time native database/schema/seed setup in `create_database_if_missing()`.
-- Preserve visible loading or toast-style feedback for data loading, cache reads/writes, errors, and database creation.
+- Preserve browser localStorage session behavior and the real desktop passkey boundary. Windows desktop must use native Win32 WebAuthn; unsupported native targets must not fake authentication.
+- Preserve visible loading or prompt-style feedback for authentication status checks, login, logout, and errors.
 - Keep the template reusable: avoid product-specific decoration unless the requested feature is intentionally product-specific.
 - If changing generated starter docs/specs, edit `.specs/generated/` rather than only changing root Template Project docs.
 
@@ -53,7 +52,7 @@ For direct spec edits, preserve the existing spec section order and keep require
 
 Add tests when the feature changes behavior that can regress without visual inspection:
 
-- Services, data loading, persistence, localization, routing, or pure logic usually need focused tests.
+- Services, persistence, platform behavior, or pure logic usually need focused tests.
 - UI-only layout and copy changes usually need compile plus real browser verification instead of brittle tests.
 - Cross-platform behavior usually needs at least one wasm check and one desktop check.
 - When using `tasks.md`, mark completed tasks with `[X]` as each task is finished.
@@ -61,7 +60,6 @@ Add tests when the feature changes behavior that can regress without visual insp
 Prefer the narrowest check that proves the change first:
 
 ```powershell
-cargo check -p ui --target wasm32-unknown-unknown
 cargo check -p web --target wasm32-unknown-unknown
 cargo check -p desktop
 .\Scripts\Other\RunTests.ps1
@@ -85,7 +83,7 @@ Continue the loop until the user confirms the behavior is complete or a real blo
 
 - Update the active `specs/<feature>/spec.md`, `plan.md`, or `tasks.md` when implemented behavior changes the agreed feature contract.
 - Update `.specs/template/specs/` for Template Project maintenance requirements and `.specs/generated/specs/` for Generated Project starter requirements.
-- Update the root `README.md` Dioxus Features section whenever Dioxus feature usage, Dioxus Components usage, routes, cache behavior, platform support, or suggested future work changes.
+- Update the root `README.md` Dioxus Features section whenever Dioxus feature usage, Dioxus Components usage, auth behavior, platform support, or suggested future work changes.
 - Update README or package README files only when the feature changes documented usage, screenshots, setup, or user-facing project capability.
 
 ## Done

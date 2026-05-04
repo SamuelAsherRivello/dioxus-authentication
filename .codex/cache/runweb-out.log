@@ -1,0 +1,24 @@
+Stopping dx.exe process 34940 (existing Dioxus server).
+Starting web app for passkey testing on localhost.
+Passkeys: http://localhost:8080
+Laptop:   http://localhost:8080
+Phone:    not available unless you pass -Lan or this laptop's Wi-Fi IPv4 address with -Address.
+
+  0.55s  INFO -----------------------------------------------------------------
+                Serving your app: web! 🚀
+                • Press [33m`ctrl+c`[0m to exit the server
+                • Press [33m`r`[0m to rebuild the app
+                • Press [33m`p`[0m to toggle automatic rebuilds
+                • Press [33m`v`[0m to toggle verbose logging
+                • Press [33m`/`[0m for more commands and shortcuts
+                Learn more at [34mhttps://dioxuslabs.com/learn/0.7/getting_started[0m
+               ----------------------------------------------------------------
+  7.54s  INFO Build completed successfully in [33m6.99s[0m, launching app! 💫
+100.89s  INFO Build completed in [33m6.70s[0m
+101.21s  INFO Hotreloading: [32mD:\Documents\Projects\VC\Rust\dioxus-authentication\packages\ui\src\client\pages\home_page.rs[0m 
+283.98s  INFO Hotreloading: [32mD:\Documents\Projects\VC\Rust\dioxus-authentication\packages\ui\src\client\pages\home_page.rs[0m 
+283.99s  INFO Hotreloading: [32mD:\Documents\Projects\VC\Rust\dioxus-authentication\packages\ui\src\client\pages\home_page.rs[0m 
+319.32s  INFO Hotreloading: [32mD:\Documents\Projects\VC\Rust\dioxus-authentication\packages\ui\src\client\pages\home_page.rs[0m 
+319.33s  INFO Hotreloading: [32mD:\Documents\Projects\VC\Rust\dioxus-authentication\packages\ui\src\client\pages\home_page.rs[0m 
+451.73s  INFO Hotreloading: [32mD:\Documents\Projects\VC\Rust\dioxus-authentication\packages\ui\src\client\pages\home_page.rs[0m 
+451.73s  INFO Hotreloading: [32mD:\Documents\Projects\VC\Rust\dioxus-authentication\packages\ui\src\client\pages\home_page.rs[0m 

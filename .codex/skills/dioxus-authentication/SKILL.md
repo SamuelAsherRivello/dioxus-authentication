@@ -1,6 +1,6 @@
 ---
 name: dioxus-authentication
-description: Work on the Dioxus Authentication Rust workspace. Use when Codex is asked to modify, debug, verify, or explain this repository, especially Dioxus 0.7 UI, routing, assets, localization, browser localStorage snapshots, native SQLite template data, or project scripts.
+description: Work on the Dioxus Authentication Rust workspace. Use when Codex is asked to modify, debug, verify, or explain this repository, especially Dioxus 0.7 UI, reusable authentication components, passkey behavior, assets, browser localStorage sessions, native desktop passkey login, or project scripts.
 ---
 
 # Dioxus Authentication
@@ -13,7 +13,7 @@ Use this skill for repository-specific execution context. Follow `AGENTS.md` and
 2. Read `.codex/rules/dioxus-0.7-workflow.md` for Dioxus implementation work.
 3. Read the files directly involved in the request before editing.
 4. Keep web and desktop support intact unless the request is explicitly platform-specific.
-5. Prefer the existing `packages/ui`, `packages/web`, and `packages/desktop` boundaries.
+5. Prefer the existing `packages/authentication`, `packages/web`, and `packages/desktop` boundaries.
 6. Identify whether the request targets the Template Project or Generated Project payload before editing root docs, `.specs/template/`, `.specs/generated/`, or specs.
 7. Use the project scripts before inventing new commands.
 
@@ -21,11 +21,10 @@ Use this skill for repository-specific execution context. Follow `AGENTS.md` and
 
 | Path | Use |
 | ---- | --- |
-| `packages/ui/src/client/app.rs` | Shared app shell entry component. |
-| `packages/ui/src/client/components` | Shared Dioxus components. |
-| `packages/ui/src/client/pages` | Routed template pages. |
-| `packages/ui/src/client/services` | Client template data, storage, localization, and database services. |
-| `packages/ui/assets` | Shared CSS and localization/flag assets. |
+| `packages/authentication/src/component.rs` | Reusable authentication card component. |
+| `packages/authentication/src/service.rs` | Authentication status, login, logout, browser WebAuthn, native Windows WebAuthn, local session, and unsupported native-target handling. |
+| `packages/authentication/src/prompt.rs` | Reusable prompt dialog used by the authentication component. |
+| `packages/authentication/assets` | Component-owned authentication CSS. |
 | `packages/web/src/main.rs` | Web entrypoint. |
 | `packages/desktop/src/main.rs` | Desktop entrypoint. |
 | `README.md` | Root documentation, including the Dioxus Features matrix that should stay current as development continues. |
@@ -46,10 +45,9 @@ Use this skill for repository-specific execution context. Follow `AGENTS.md` and
 
 ## Cache And Loading Behavior
 
-- Preserve visible loading affordances during cache reads, database creation, and refreshes.
-- Browser builds use localStorage snapshots instead of browser SQLite.
-- Non-wasm builds use native SQLite under local `data/`.
-- Put first-time native database/schema/seed setup in `create_database_if_missing()` and keep normal reads non-destructive.
+- Preserve visible loading affordances during authentication status checks, login, logout, and errors.
+- Browser builds use localStorage for demo passkey credential/session state.
+- Windows non-wasm builds use native Win32 WebAuthn. Other non-wasm targets must report real passkey auth as unavailable instead of faking login.
 - Treat stale dev servers as a common source of false browser results.
 
 ## Verification
@@ -57,7 +55,6 @@ Use this skill for repository-specific execution context. Follow `AGENTS.md` and
 Use the narrowest check that proves the change:
 
 ```powershell
-cargo check -p ui --target wasm32-unknown-unknown
 cargo check -p web --target wasm32-unknown-unknown
 cargo check -p desktop
 .\Scripts\Common\RunWeb.ps1

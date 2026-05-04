@@ -1,6 +1,6 @@
 use dioxus_i18n::fluent::{FluentArgs, FluentBundle, FluentResource};
 use dioxus_i18n::unic_langid::LanguageIdentifier;
-use ui::{AppLanguage, TemplateData, TemplateDataLoadRequest, Theme};
+use ui::{default_locale, Theme};
 
 const LOCALES: [(&str, &str); 4] = [
     ("en-US", include_str!("../assets/i18n/en-US.ftl")),
@@ -12,15 +12,8 @@ const LOCALES: [(&str, &str); 4] = [
 const TRANSLATION_KEYS: &[&str] = &[
     "nav-page-01",
     "nav-page-01-short",
-    "nav-page-02",
-    "nav-page-02-short",
-    "nav-page-03",
-    "nav-page-03-short",
     "view-page-01",
-    "view-page-02",
-    "view-page-03",
     "open-github-repository",
-    "refresh-template-data",
     "toggle-theme",
     "theme",
     "language-selector",
@@ -28,25 +21,18 @@ const TRANSLATION_KEYS: &[&str] = &[
     "language-es",
     "language-pt",
     "language-fr",
-    "loading-template-data",
-    "template-data-unavailable",
-    "source-database",
-    "toast-action-loading",
-    "toast-action-loaded",
-    "toast-action-error",
-    "page-01-title",
-    "page-01-body-01",
-    "page-01-body-02",
-    "page-01-body-03-prefix",
-    "page-01-body-03-warning",
-    "page-02-title",
-    "page-02-body-01",
-    "page-02-body-02",
-    "page-02-body-03",
-    "page-03-title",
-    "page-03-body-01",
-    "page-03-body-02",
-    "page-03-body-03",
+    "dev-tools",
+    "home-hero-title",
+    "home-hero-body",
+    "component-section-title",
+    "component-section-body",
+    "usage-section-title",
+    "demo-section-title",
+    "demo-origin-warning-prefix",
+    "unknown-origin",
+    "app-error-title",
+    "app-error-default-message",
+    "app-error-retry",
     "footer-rights",
 ];
 
@@ -75,20 +61,7 @@ fn theme_toggle_switches_between_light_and_dark() {
 
 #[test]
 fn language_default_is_english() {
-    assert_eq!(AppLanguage::default(), AppLanguage::En);
-}
-
-#[test]
-fn template_data_seed_is_the_default_database_row() {
-    let seed = TemplateData::seed();
-
-    assert_eq!(seed.id, 1);
-    assert_eq!(seed.message, "Hello, World!");
-}
-
-#[test]
-fn template_data_load_request_starts_at_zero() {
-    assert_eq!(TemplateDataLoadRequest::initial().sequence, 0);
+    assert_eq!(default_locale().to_string(), "en-US");
 }
 
 #[test]

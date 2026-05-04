@@ -1,27 +1,28 @@
 # Dioxus Authentication
 
-Dioxus Authentication is a reusable passkey-first authentication component for Dioxus 0.7 apps. This repo also includes a runnable demo so you can try the component first, then copy the focused `packages/authentication` package into your own Dioxus workspace when it fits your project.
+Dioxus Authentication is a reusable passkey-first authentication component for Dioxus 0.7 apps. This repo also includes a runnable demo so you can try the component first, then copy the focused `packages/dioxus-authentication-component` package into your own Dioxus workspace when it fits your project.
 
 ## TOC
 
-| Section | Link |
-| ------- | ---- |
-| Live Demo | [Live Demo](#live-demo) |
-| Pics | [Pics](#pics) |
-| Getting Started | [Getting Started](#getting-started) |
-| Authentication Component | [Authentication Component](#authentication-component) |
-| Demo | [Demo](#demo) |
-| Bring Auth Into Your Project | [Bring Auth Into Your Project](#bring-auth-into-your-project) |
-| Details | [Details](#details) |
-| Structure | [Structure](#structure) |
-| Features | [Features](#features) |
-| Credits | [Credits](#credits) |
+- [TOC](#toc)
+- [Live Demo](#live-demo)
+- [Pics](#pics)
+- [Getting Started](#getting-started)
+  - [Common Scripts](#common-scripts)
+  - [Other Scripts](#other-scripts)
+- [Authentication Component](#authentication-component)
+- [Demo](#demo)
+- [Bring Auth Into Your Project](#bring-auth-into-your-project)
+- [Details](#details)
+  - [Structure](#structure)
+  - [Features](#features)
+- [Credits](#credits)
 
 ## Live Demo
 
 https://samuelasherrivello.github.io/dioxus-authentication/
 
-The static web build is exported and hosted automatically with each push to the main branch. For real passkey testing, run the app locally at `http://localhost:8080`; browsers require a secure context and this demo is coded to use localhost for WebAuthn.
+The static web build is exported and hosted automatically with each push to the main branch. The hosted HTTPS demo can run the browser passkey flow. For local passkey testing, run the app at `http://localhost:8080`; browsers require localhost or HTTPS for WebAuthn.
 
 ## Pics
 
@@ -42,32 +43,80 @@ The static web build is exported and hosted automatically with each push to the 
 
 | Command | Required? | Description |
 | ------- | --------- | ----------- |
-| `.\Scripts\Other\RunDesktop.ps1` | ❌ | Starts the desktop demo with Dioxus desktop. Passkey login is intentionally unavailable in desktop WebView. |
+| `.\Scripts\Other\RunDesktop.ps1` | ❌ | Starts the desktop demo with Dioxus desktop. On Windows, desktop uses the native Win32 WebAuthn API so Windows owns the passkey prompt. |
 | `.\Scripts\Other\RunTests.ps1` | ❌ | Runs RunWeb script tests and UI/auth crate tests. |
 
 ## Authentication Component
 
-`packages/authentication` is the primary artifact in this repo. It owns the reusable component, auth service boundary, passkey prompt feedback, and component stylesheet so it can be carried into another Dioxus app without dragging the whole demo along.
+`packages/dioxus-authentication-component` is the primary artifact in this repo. It owns the reusable component, auth service boundary, component stylesheet, optional confirmation prompt, and auth Fluent bundles so it can be carried into another Dioxus app without dragging the whole demo along.
 
 | Public Surface | Role |
 | -------------- | ---- |
-| `AuthenticationComponent` | Dioxus component that renders auth status, passkey login, logout, prompt feedback, and built-in auth styling. |
+| `AuthenticationView` | Dioxus component that renders auth status and login/logout controls. |
+| `AuthenticationViewConfig` | Config object for session detail, provider choices, status signal, busy signal, and login/logout handlers. |
+| `AuthenticationConfirmationPrompt` | Optional localized confirmation dialog for apps that want the package-owned logout prompt. |
+| `prelude` | Short import module for common component, service, config, provider, locale, and constant exports. |
+| `authentication_locales()` | Built-in auth Fluent resources for app-level `dioxus-i18n` setup. |
 | `AuthenticationService` | Async service boundary for current status, login, logout, session expiration, and platform support checks. |
 | `AuthenticationSessionConfig` | Small configuration type for the local demo session lifetime. |
-| `current_demo_origin_warning()` | Helper for showing the localhost requirement when testing browser passkeys. |
+| `AuthenticationProvider` | Provider option model with an id and localized display text for the one-choice provider bar. |
+| `AuthenticationPasskeyConfig` | Passkey prompt metadata for app id, relying-party name, account name, and friendly display name. |
+| `current_demo_origin_warning()` | Helper for warning only on local HTTP testing hosts that should be opened through localhost for WebAuthn. |
 | `DEFAULT_PASSKEY_EXPIRATION_HOURS` | Default local demo session lifetime, currently 48 hours. |
 
 ```rust
-use authentication::AuthenticationComponent;
+use authentication::prelude::*;
 use dioxus::prelude::*;
 
 #[component]
 fn Home() -> Element {
+
+
+    // Configuration
+    let session_config = AuthenticationSessionConfig::new(
+        48,
+        "my_app_id", // Reuse this key
+    );
+    let passkey_config = AuthenticationPasskeyConfig::new(
+        "my_app_id", // Same app key
+        "My Dioxus Authentication", // Prompt app name
+        "my_email@my_email.com", // Account name
+        "My Demo User", // Friendly label
+    );
+
+
+    // Callbacks
+    let on_login = EventHandler::new(move |_provider_id: String| {
+        println!("You are logged in");
+    });
+    let on_logout = EventHandler::new(move |_| {
+        println!("You are logged out");
+    });
+
+
+    // Component
+    let config = AuthenticationViewConfig::new(
+        session_config, // Session settings
+        vec![passkey_provider("PassKey")], // Pick one provider
+        auth_status,
+        auth_is_busy,
+        on_login, // Sign in
+        on_logout, // Sign out
+    );
+
     rsx! {
-        AuthenticationComponent { expiration_hours: Some(48) }
+        AuthenticationView { config }
     }
 }
 ```
+
+| Login config source | Controls | Notes |
+| ------------ | -------- | ----- |
+| `AuthenticationPasskeyConfig` | `AuthenticationService::login` | `app_id`, app/service labels (`rp.name`, `user.name`, `user.displayName`) come from page-owned prompt setup before login calls are executed. |
+| `AuthenticationProvider` | `AuthenticationViewConfig` | Provider id and localized display text render as a radio choice; `PassKey` is the only built-in value for now. |
+| Browser/OS prompt chrome | Secure origin and platform UI | Not fully customizable; the prompt may still show the current domain, such as `localhost`. |
+
+The local demo creates a new demo credential when `AuthenticationPasskeyConfig` values change. Keep `app_id = "my_app_id"` stable to reuse the demo key, or randomize it while testing to force a fresh local passkey flow.
 
 ## Demo
 
@@ -75,10 +124,10 @@ The demo proves the package inside a normal Dioxus workspace. Use it to inspect 
 
 | Demo Surface | Description |
 | ------------ | ----------- |
-| Home route | Presents the component, a short usage embed, and the live passkey demo. |
+| Web entrypoint | Presents the component and the live passkey demo. |
 | Web runner | Uses typed WebAuthn browser bindings through `web-sys` and stores the local demo credential/session in browser localStorage. |
-| Desktop runner | Keeps desktop support intact, but reports passkey login as unavailable instead of simulating a browser passkey prompt. |
-| Demo warning | Shows when the web app is not running from `http://localhost:8080`, which is the intended passkey test origin. |
+| Desktop runner | Uses the native Win32 WebAuthn API on Windows so the desktop app opens a real Windows passkey prompt instead of a fake login path. |
+| Demo warning | Shows only for local HTTP testing hosts that are not `localhost`, with a same-page link to the matching `localhost` URL. |
 
 ## Bring Auth Into Your Project
 
@@ -86,10 +135,10 @@ The lightest path is to copy only the reusable package and then reference it fro
 
 | Step | Action |
 | ---- | ------ |
-| 1 | Copy [`packages/authentication`](./packages/authentication) into your Dioxus workspace, commonly as `packages/authentication`. |
-| 2 | Add `authentication = { path = "../authentication" }` to the consuming crate, adjusting the relative path for your workspace layout. |
-| 3 | Keep or adapt the package dependencies from [`packages/authentication/Cargo.toml`](./packages/authentication/Cargo.toml), including Dioxus 0.7, Dioxus Components primitives, and wasm WebAuthn bindings. |
-| 4 | Render `AuthenticationComponent { expiration_hours: Some(48) }` from any routed page or shell component. |
+| 1 | Copy [`packages/dioxus-authentication-component`](./packages/dioxus-authentication-component) into your Dioxus workspace, commonly as `packages/dioxus-authentication-component`. |
+| 2 | Add `authentication = { path = "../dioxus-authentication-component" }` to the consuming crate, adjusting the relative path for your workspace layout. |
+| 3 | Keep or adapt the package dependencies from [`packages/dioxus-authentication-component/Cargo.toml`](./packages/dioxus-authentication-component/Cargo.toml), including Dioxus 0.7, Dioxus Components primitives, and wasm WebAuthn bindings. |
+| 4 | Register the package Fluent resources with your app's single `dioxus-i18n` provider, then render `AuthenticationView { config }` from any routed page or shell component. |
 | 5 | Replace the local demo session behavior with server-issued challenges and server-side verification before trusting passkeys in production. |
 
 Production passkey auth should add server challenge generation, server-side verification, persistent user records, and tamper-resistant sessions. This repo keeps those concerns behind `AuthenticationService` so the component can stay stable while the backend becomes real.
@@ -109,10 +158,10 @@ The sections below separate the reusable authentication package from the demo wo
 | 03 | [`.github`](./.github) | ✅ | GitHub Actions automation, including the web export workflow. |
 | 04 | [`.specify`](./.specify) | ✅ | Spec Kit configuration, templates, scripts, workflows, constitution, and active feature state. |
 | 05 | [`Documentation`](./Documentation) | ✅ | README screenshots, infographic images, and supporting documentation assets. |
-| 06 | [`packages`](./packages) | ✅ | Rust workspace crates for reusable auth, shared demo UI, web entrypoint, and desktop entrypoint. |
+| 06 | [`packages`](./packages) | ✅ | Rust workspace crates for reusable auth, web entrypoint, and desktop entrypoint. |
 | 07 | [`Scripts`](./Scripts) | ✅ | PowerShell setup, run, and test workflows. |
 | 08 | [`specs`](./specs) | ✅ | Project specs for the auth-focused repo. |
-| 09 | [`data`](./data) | ❌ | Local native runtime database output for desktop/non-wasm runs. |
+| 09 | [`data`](./data) | ❌ | Local native runtime settings output for desktop/non-wasm runs. |
 | 10 | [`node_modules`](./node_modules) | ❌ | Local dependency cache if Node-based tooling is installed. |
 | 11 | [`target`](./target) | ❌ | Cargo build output. |
 | 12 | [`test-results`](./test-results) | ❌ | Local browser/test artifacts. |
@@ -122,12 +171,11 @@ The sections below separate the reusable authentication package from the demo wo
 
 | Path | Description |
 | ---- | ----------- |
-| [`packages/authentication`](./packages/authentication) | Reusable Dioxus auth package and the main component to copy into another project. |
-| [`packages/ui`](./packages/ui) | Shared demo app shell, route, localization, toast, data cache demo, and page UI. |
+| [`packages/dioxus-authentication-component`](./packages/dioxus-authentication-component) | Reusable Dioxus auth package and the main component to copy into another project. |
 | [`packages/web`](./packages/web) | Web entrypoint and web assets for trying browser passkeys. |
 | [`packages/desktop`](./packages/desktop) | Desktop entrypoint and desktop assets for verifying the app still runs outside the browser. |
 
-The shared demo app preserves the starter template behavior for routing, localization, theme state, localStorage snapshots, and native SQLite cache reads. The authentication package stays separate so the component can be evaluated in the demo and then reused without the demo shell.
+The demo entrypoints render the authentication package directly. The reusable component stays separate so it can be evaluated in this repo and then copied into another Dioxus app without carrying extra demo shell code.
 
 ### Features
 
@@ -135,66 +183,18 @@ The shared demo app preserves the starter template behavior for routing, localiz
 
 | # | Feature | In Project? | Usage |
 | - | ------- | ----------- | ----- |
-| 1 | Reusable Dioxus auth component | ✅ | [`AuthenticationComponent`](./packages/authentication/src/component.rs) renders the auth card, actions, status, prompt, and stylesheet link. |
-| 2 | Auth service boundary | ✅ | [`AuthenticationService`](./packages/authentication/src/service.rs) owns status, login, logout, expiration, and platform support checks. |
-| 3 | Browser passkey demo | ✅ | Web builds use typed WebAuthn browser APIs through `web-sys`. |
-| 4 | Local demo session expiration | ✅ | Browser localStorage stores a timestamped demo session and expires it through `AuthenticationSessionConfig`. |
-| 5 | Desktop support | ✅ | Desktop builds compile and run, with an explicit unsupported passkey status. |
-| 6 | Production server verification | ❌ | Future work should wire Dioxus fullstack server functions to `webauthn-rs` or another production passkey backend. |
-| 7 | Username/password auth | ❌ | Intentionally out of scope for this passkey-first component. |
-| 8 | Social login | ❌ | Intentionally out of scope for this passkey-first component. |
-
-#### Dioxus Components
-
-This grid covers the Dioxus Components gallery. ✅ means this repo imports or implements that Dioxus Components component, not just a similarly named HTML element or local utility.
-
-Related tech: [Dioxus Components](https://dioxuslabs.com/components/)
-
-| # | Component Docs | Usage |
-| - | -------------- | ----- |
-| 1 | [Alert Dialog](https://dioxuslabs.com/components/component/?name=alert_dialog) | ✅ Auth prompt feedback uses `dioxus_primitives::alert_dialog`. |
-| 2 | [Aspect Ratio](https://dioxuslabs.com/components/component/?name=aspect_ratio) | ✅ Preserved in the shared UI demo package from the starter template. |
-| 3 | Other gallery components | ❌ Not used yet. |
-
-#### Dioxus Features
-
-Keep this section updated as development continues. When routes, platform support, cache behavior, Dioxus feature usage, or Dioxus Components usage changes, update the matching rows in the same change.
-
-Related tech: [Dioxus docs](https://dioxuslabs.com/learn/0.7/)
-
-| # | Feature | Docs | In Project? | Usage |
-| - | ------- | ---- | ----------- | ----- |
-| 1 | Components | [Components](https://dioxuslabs.com/learn/0.7/essentials/ui/components/) | ✅ | Shared UI and auth package use `#[component] fn Name(...) -> Element`; see [`AuthenticationComponent`](./packages/authentication/src/component.rs). |
-| 2 | RSX markup | [RSX](https://dioxuslabs.com/learn/0.7/essentials/ui/rsx/) | ✅ | Pages and components render HTML-like UI through `rsx!`; see [`Page01`](./packages/ui/src/client/pages/page01.rs). |
-| 3 | Signals | [Signals](https://dioxuslabs.com/learn/0.7/essentials/basics/signals/) | ✅ | `AuthenticationComponent` uses signals for auth status, busy state, and prompt feedback. |
-| 4 | Router | [Routes](https://dioxuslabs.com/learn/0.7/essentials/router/routes/) | ✅ | The demo keeps the shared Dioxus router in [`packages/ui/src/client/mod.rs`](./packages/ui/src/client/mod.rs). |
-| 5 | Asset macro | [Assets](https://dioxuslabs.com/learn/0.7/essentials/ui/assets/) | ✅ | The auth package injects `authentication.css` through `asset!("/assets/authentication.css")`. |
-| 6 | Document head links | [Assets](https://dioxuslabs.com/learn/0.7/essentials/ui/assets/) | ✅ | Web, desktop, and auth components inject checked-in CSS through Dioxus document links. |
-| 7 | Async work | [Async](https://dioxuslabs.com/learn/0.7/essentials/basics/async/) | ✅ | `AuthenticationComponent` calls async service methods through `use_future` and spawned event handlers. |
-| 8 | Error boundaries | [Error handling](https://dioxuslabs.com/learn/0.7/essentials/basics/error_handling/) | ✅ | The demo shell preserves the starter app error boundary. |
-| 9 | Browser localStorage | [Web platform](https://dioxuslabs.com/learn/0.7/guides/platforms/web/) | ✅ | Auth demo sessions and starter template snapshots use browser localStorage. |
-| 10 | Native SQLite cache | [Async](https://dioxuslabs.com/learn/0.7/essentials/basics/async/) | ✅ | Native starter data still uses SQLite under `data/` for non-wasm builds. |
-| 11 | First-time DB creation | [Async](https://dioxuslabs.com/learn/0.7/essentials/basics/async/) | ✅ | First-time native schema and seed setup stays in `create_database_if_missing()`. |
-| 12 | Localization | [dioxus-i18n](https://crates.io/crates/dioxus-i18n) | ✅ | The demo shell preserves Fluent bundles for English, Spanish, Portuguese, and French. |
-| 13 | Web target | [Web platform](https://dioxuslabs.com/learn/0.7/guides/platforms/web/) | ✅ | [`packages/web`](./packages/web/src/main.rs) launches the shared demo UI for browser passkey testing. |
-| 14 | Desktop target | [Desktop platform](https://dioxuslabs.com/learn/0.7/guides/platforms/desktop/) | ✅ | [`packages/desktop`](./packages/desktop/src/main.rs) launches the same shared demo UI with explicit passkey unsupported status. |
-| 15 | Server functions | [Server functions](https://dioxuslabs.com/learn/0.7/essentials/fullstack/server_functions/) | ❌ | Not implemented yet; recommended for production passkey challenge and verification flows. |
-
-#### Github Features
-
-| Related tech | Link |
-| ------------ | ---- |
-| GitHub Actions | [GitHub Actions docs](https://docs.github.com/en/actions) |
-| GitHub Pages | [Custom GitHub Pages workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) |
-
-Keep [`.github/workflows/export-web-build-to-github-pages.yml`](./.github/workflows/export-web-build-to-github-pages.yml) as the only GitHub Pages deployment workflow. Do not create a branch-based Pages action; it can fight with this custom export workflow.
-
-| Option | Instructions |
-| ------ | ------------ |
-| Enable Pages manually | In GitHub, open `Settings > Pages` and set `Source` to `GitHub Actions`. Do not select a branch source. |
-| Add `PAGES_ADMIN_TOKEN` | Add a repository secret named `PAGES_ADMIN_TOKEN` with Pages write permission so the workflow can enable or repair Pages setup without creating another action. |
-
-The GitHub Actions display name is `ExportWebBuildToGithubPages`.
+| 1 | Reusable Dioxus auth component | ✅ | [`AuthenticationView`](./packages/dioxus-authentication-component/src/view/authentication_view.rs) renders the auth card and login/logout stateful controls with styling. |
+| 2 | Auth service boundary | ✅ | [`AuthenticationService`](./packages/dioxus-authentication-component/src/services/authentication_service.rs) owns status, login, logout, expiration, and platform support checks. |
+| 3 | Browser passkey demo | ✅ | Web builds use typed WebAuthn browser APIs through `web-sys`, keyed by stable `app_id` demo storage. |
+| 4 | Prompt orchestration | ✅ | `AuthenticationView` receives status and action callbacks while `AuthenticationConfirmationPrompt` remains an optional package component. |
+| 5 | Provider selection | ✅ | `AuthenticationViewConfig` accepts provider options and renders a radio bar; `PassKey` is the only provider today. |
+| 6 | Local demo session expiration | ✅ | Browser localStorage stores a timestamped demo session and expires it through `AuthenticationSessionConfig`. |
+| 7 | Desktop support | ✅ | Windows desktop builds compile and run with native Win32 WebAuthn passkey registration, assertion, session status, and logout. |
+| 8 | Four-language auth localization | ✅ | `packages/dioxus-authentication-component/assets/i18n` ships separate English, Spanish, Portuguese, and French Fluent bundles. |
+| 9 | Shared template UI crate | ✅ | `packages/ui` owns routes, localization, shell controls, and demo page composition for both web and desktop. |
+| 10 | Production server verification | ❌ | Future work should wire Dioxus fullstack server functions to `webauthn-rs` or another production passkey backend. |
+| 11 | Username/password auth | ❌ | Intentionally out of scope for this passkey-first component. |
+| 12 | Social login | ❌ | Intentionally out of scope for this passkey-first component. |
 
 ## Credits
 
@@ -216,3 +216,4 @@ Samuel Asher Rivello. Over 25 years XP with game development (2025); over 10 yea
 Provided as-is under [MIT License](./LICENSE).
 
 Copyright (c) 2006 - 2026 Rivello Multimedia Consulting, LLC
+

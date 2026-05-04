@@ -8,9 +8,9 @@ Primary docs: https://dioxuslabs.com/learn/0.7/
 
 - Read `AGENTS.md`, this file, and the files directly involved in the requested behavior before editing.
 - Respect the repo's two layers: Template Project files maintain the reusable template, while `.specs/generated/` files seed the copied Generated Project.
-- Keep shared UI and business logic in `packages/ui`; keep target entrypoints in `packages/web` and `packages/desktop`.
+- Keep reusable authentication UI and business logic in `packages/authentication`; keep target entrypoints in `packages/web` and `packages/desktop`.
 - Preserve both web and desktop unless the request is explicitly platform-specific.
-- Prefer existing app patterns before adding new abstractions. This template uses context signals for theme, language, template data load requests, cached template data results, and toast state.
+- Prefer existing app patterns before adding new abstractions. This project keeps the reusable authentication component separate from the web and desktop demo entrypoints.
 - Treat Dioxus 0.7 docs as authoritative. Do not use older Dioxus APIs such as `cx`, `Scope`, `use_state`, old router setup, or borrowed component props.
 
 ## Components And Props
@@ -26,9 +26,9 @@ Primary docs: https://dioxuslabs.com/learn/0.7/
 
 - Use `use_signal` for local mutable state and context signals for shared app state.
 - Read signal values with call syntax for cheap clones, `.read()` for borrowed reads, `.peek()` for non-subscribing reads, and write with `.set()`, `.write()`, or `.with_mut()`.
-- Use `.peek()` inside cache-write, toast-deduplication, or background persistence logic when a reactive subscription would create a feedback loop.
+- Use `.peek()` inside background persistence or prompt-deduplication logic when a reactive subscription would create a feedback loop.
 - Use `use_memo` for derived values that should recalculate only when their dependencies change.
-- Use `use_context_provider` in layout/root components and `use_context::<Signal<T>>()` in descendants for shared state. This repo provides app-level context in `packages/ui/src/client/mod.rs`.
+- Use `use_context_provider` in layout/root components and `use_context::<Signal<T>>()` in descendants when shared state is needed.
 
 ## Async Loading
 
@@ -38,27 +38,24 @@ Primary docs: https://dioxuslabs.com/learn/0.7/
 - Avoid overlapping user-triggered loads unless the existing flow supports them. Gate refresh behavior with existing request signals or explicit loading state.
 - Never block the first meaningful render on optional cache work when snapshot data can render first.
 
-## Routing And Layout
+## Layout
 
-- Keep routes in the single `Route` enum in `packages/ui/src/client/mod.rs`.
-- The default route `/` renders `Page01`; `/page-02` renders `Page02`; `/page-03` renders `Page03`.
-- Use `#[derive(Routable, Clone, PartialEq)]`, `#[route("/path")]`, `#[layout(AppLayout)]`, and `Router::<Route> {}`.
-- Render router-aware navigation only under `Router::<Route> {}`.
+- The web and desktop crates render the authentication demo directly from their entrypoints.
+- If routes are reintroduced, keep router-aware navigation under `Router::<Route> {}`.
 
 ## Assets And Styles
 
 - Use `asset!("/assets/...")` for local files relative to the package root. Do not use absolute machine paths.
-- Keep shared CSS and flag/localization assets under `packages/ui/assets` when used by shared UI.
+- Keep reusable component CSS under `packages/authentication/assets`; keep target shell CSS under `packages/web/assets` and `packages/desktop/assets`.
 - Inject styles with Dioxus document components already used in the repo.
 - For browser-visible styling or asset changes, run the real web app and inspect it instead of trusting compile success alone.
 
-## Template Data Cache Behavior
+## Authentication State Behavior
 
-- Template data may come from browser snapshot data or native SQLite.
-- Preserve status feedback for template data loading, cache reads, SQLite operations, errors, and database creation.
+- Preserve visible loading or prompt-style feedback for authentication status checks, login, logout, and errors.
+- Browser builds use localStorage for demo passkey credential/session state.
 - Browser builds must not introduce SQLite or OPFS worker startup.
-- Native first-time schema and seed setup belongs in `create_database_if_missing()` in `database_service.rs`.
-- Normal database reads should not recreate, clear, or reseed an existing database.
+- Desktop builds must not use fake authentication. Windows desktop uses native Win32 WebAuthn support; unsupported native targets must report passkey login as unavailable instead of pretending to authenticate.
 
 ## Documentation
 
@@ -76,7 +73,6 @@ Primary docs: https://dioxuslabs.com/learn/0.7/
 Use the smallest check that proves the change, then broaden when the edit crosses packages or runtime surfaces:
 
 ```powershell
-cargo check -p ui --target wasm32-unknown-unknown
 cargo check -p web --target wasm32-unknown-unknown
 cargo check -p desktop
 .\Scripts\Other\RunTests.ps1

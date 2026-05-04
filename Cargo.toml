@@ -2,7 +2,7 @@
 resolver = "2"
 default-members = ["packages/web"]
 members = [
-    "packages/authentication",
+    "packages/dioxus-authentication-component",
     "packages/ui",
     "packages/web",
     "packages/desktop",
@@ -12,5 +12,5 @@ members = [
 dioxus = { version = "0.7.7", features = ["router"] }
 
 # workspace
-authentication = { path = "packages/authentication" }
+authentication = { path = "packages/dioxus-authentication-component" }
 ui = { path = "packages/ui" }

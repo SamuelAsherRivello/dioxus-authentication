@@ -7,7 +7,7 @@ use dioxus_i18n::prelude::*;
 pub enum Route {
     #[layout(AppLayout)]
     #[route("/")]
-    Page01 {},
+    HomePage {},
 }
 
 #[component]
@@ -17,15 +17,8 @@ fn AppLayout() -> Element {
     let initial_language = language();
     use_init_i18n(|| services::localization_service::config(initial_language));
 
-    let data_load_request = use_signal(models::TemplateDataLoadRequest::initial);
-    let data_load_cache = use_signal(|| None::<Result<models::TemplateDataLoadResult, String>>);
-    let toast = use_signal(|| None::<components::toast::Toast>);
-
     use_context_provider(|| theme);
     use_context_provider(|| language);
-    use_context_provider(|| data_load_request);
-    use_context_provider(|| data_load_cache);
-    use_context_provider(|| toast);
 
     let shell_class = format!("app-shell {}", theme().class_name());
 
@@ -46,11 +39,8 @@ fn AppLayout() -> Element {
 #[component]
 fn PageStack() -> Element {
     rsx! {
-        div {
-            class: "page-stack",
-            Page { route: Route::Page01 {}, will_preload: true,
-                Page01 {}
-            }
+        div { class: "page-stack",
+            Page { route: Route::HomePage {}, will_preload: true, HomePage {} }
         }
     }
 }
@@ -59,14 +49,9 @@ mod app;
 pub use app::App;
 
 pub mod pages {
-    pub mod page01;
-    pub mod page02;
-    pub mod page03;
-    pub mod template_page;
+    pub mod home_page;
 }
-pub use pages::page01::Page01;
-pub use pages::page02::Page02;
-pub use pages::page03::Page03;
+pub use pages::home_page::HomePage;
 
 pub mod components {
     pub mod app_error;
@@ -75,7 +60,6 @@ pub mod components {
     pub mod page_footer;
     pub mod page_header;
     pub mod prompt;
-    pub mod toast;
 }
 pub use components::app_error::AppErrorFallback;
 pub use components::developer_tools::DeveloperTools;
@@ -83,11 +67,6 @@ pub use components::page::Page;
 pub use components::page_footer::PageFooter;
 pub use components::page_header::PageHeader;
 
-pub mod models;
-pub use models::{
-    TemplateData, TemplateDataLoadRequest, TemplateDataLoadResult, TemplateDataSource,
-};
-
 pub mod services;
-pub use services::localization_service::AppLanguage;
+pub use services::localization_service::default_locale;
 pub use services::storage_service::Theme;

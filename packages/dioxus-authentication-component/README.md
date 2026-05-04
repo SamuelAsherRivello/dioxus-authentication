@@ -1,0 +1,89 @@
+# Authentication Package
+
+Reusable Dioxus passkey authentication package for web and desktop apps.
+
+## Public Surface
+
+| Item | Description |
+| ---- | ----------- |
+| `AuthenticationView` | Dioxus component that renders status, login/logout actions, and built-in stylesheet. |
+| `AuthenticationViewConfig` | Component config for session detail, provider choices, status signal, busy signal, and login/logout callbacks. |
+| `AuthenticationConfirmationPrompt` | Optional localized logout confirmation dialog. |
+| `prelude` | Short import module for common component, service, config, provider, locale, and constant exports. |
+| `authentication_locales()` | Built-in Fluent resources for registering the auth package with a Dioxus i18n provider. |
+| `AuthenticationService` | Service boundary for status, login, logout, session expiration, browser WebAuthn checks, and native Windows WebAuthn checks. |
+| `AuthenticationProvider` | Provider option model with an id and display text for the one-choice provider bar. |
+| `AuthenticationPasskeyConfig` | Passkey registration metadata for app id, relying-party name, user name, and user display name. |
+| Session time format | Short local timestamp using 24-hour time with timezone shown onscreen. |
+
+## Usage
+
+```rust
+use authentication::prelude::*;
+use dioxus::prelude::*;
+
+#[component]
+fn Home() -> Element {
+
+
+    // Configuration
+    let session_config = AuthenticationSessionConfig::new(
+        48,
+        "my_app_id", // Reuse this key
+    );
+    let passkey_config = AuthenticationPasskeyConfig::new(
+        "my_app_id", // Same app key
+        "My Dioxus Authentication", // Prompt app name
+        "my_email@my_email.com", // Account name
+        "My Demo User", // Friendly label
+    );
+
+
+    // Callbacks
+    let on_login = EventHandler::new(move |_provider_id: String| {
+        println!("You are logged in");
+    });
+    let on_logout = EventHandler::new(move |_| {
+        println!("You are logged out");
+    });
+
+
+    // Component
+    let config = AuthenticationViewConfig::new(
+        session_config, // Session settings
+        vec![passkey_provider("PassKey")], // Pick one provider
+        auth_status,
+        auth_is_busy,
+        on_login, // Sign in
+        on_logout, // Sign out
+    );
+
+    rsx! {
+        AuthenticationView { config }
+    }
+}
+```
+
+```rust
+use authentication::AuthenticationConfirmationPrompt;
+use dioxus::prelude::*;
+
+rsx! {
+    AuthenticationConfirmationPrompt {
+        open: is_logout_confirmation_open,
+        on_answer: move |confirmed| handle_logout_confirmation(confirmed),
+    }
+}
+```
+
+The auth package stores its Fluent bundles under `assets/i18n/`. Register those resources in your app's single global `dioxus-i18n` provider, then render `AuthenticationView` from any page. The confirmation prompt is exported separately so apps can use their own logout flow without carrying this dialog.
+
+## Passkey Config Flow
+
+Passkey RP and user metadata are now supplied in the flow before calling
+`AuthenticationService::login`, so the view receives only rendered state and callbacks.
+
+| Config Value | Default | Effect |
+| ------------ | ------- | ------ |
+| `app_id` | `my_app_id` | Keep it stable to reuse the demo key; change it to force new local test credentials. |
+| `providers` | `PassKey` | Renders the provider radio bar and passes the selected provider id into login. |

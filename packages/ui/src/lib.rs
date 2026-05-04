@@ -3,7 +3,6 @@
 pub mod client;
 
 pub use client::{
-    App, AppErrorFallback, AppLanguage, DeveloperTools, Page, Page01, Page02, Page03, PageFooter,
-    PageHeader, Route, TemplateData, TemplateDataLoadRequest, TemplateDataLoadResult,
-    TemplateDataSource, Theme,
+    default_locale, App, AppErrorFallback, DeveloperTools, HomePage, Page, PageFooter, PageHeader,
+    Route, Theme,
 };

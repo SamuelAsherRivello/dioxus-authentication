@@ -58,7 +58,6 @@ Expected matches should be limited to intentional old-name references in the ren
 10. Run focused validation in the new repo:
 
 ```powershell
-cargo check -p ui --target wasm32-unknown-unknown
 cargo check -p web --target wasm32-unknown-unknown
 cargo check -p desktop
 ```

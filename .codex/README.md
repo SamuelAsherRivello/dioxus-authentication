@@ -4,7 +4,7 @@ Use this folder for Codex-specific project context that should travel with this 
 
 ## Project
 
-`dioxus-authentication` is a Rust workspace for a Dioxus 0.7 template app with shared UI code and separate web and desktop entrypoints.
+`dioxus-authentication` is a Rust workspace for a Dioxus 0.7 authentication package with separate web and desktop demo entrypoints.
 
 Use `.codex/project-identity.md` as the first checklist when changing this template into a new named project.
 
@@ -17,13 +17,14 @@ This repo has two layers:
 
 | Path | Purpose |
 | ---- | ------- |
-| `packages/ui` | Shared Dioxus code split between pages, components, models, client services, assets, and tests. |
+| `packages/authentication` | Reusable Dioxus authentication component, service boundary, prompt component, and component CSS. |
 | `packages/web` | Web app entrypoint and web assets. |
 | `packages/desktop` | Desktop app entrypoint and desktop assets. |
 | `Scripts` | Windows PowerShell workflows for setup, web run, desktop run, and tests. |
 | `Documentation/Images` | README screenshots and infographic assets that can be replaced in-place. |
 | `.specs/template` | Template Project guidance and specs. |
 | `.specs/generated` | Generated Project replacement docs and starter specs. |
+| `.codex/cache` | Rebuildable cache files for repo-local Codex skills. |
 
 ## Project Rules
 
@@ -55,10 +56,9 @@ The web script stops an older `dx serve` process on the requested port before st
 ## Runtime Notes
 
 - The app supports web and desktop paths.
-- Browser template data uses localStorage snapshots.
-- Native template data uses SQLite under local `data/`.
-- First-time database/schema/seed creation belongs in `create_database_if_missing()`.
-- Browser behavior should be validated in a real served app when UI, routing, cache loading, or asset behavior changes.
+- Browser passkey sessions use localStorage.
+- Windows desktop uses native Win32 WebAuthn so the desktop app opens a real Windows passkey prompt.
+- Browser behavior should be validated in a real served app when UI, passkey, or asset behavior changes.
 
 ## Skill Work
 
@@ -69,3 +69,5 @@ Use `.codex/skills/validate-specs/SKILL.md` to compare Spec Kit specs against th
 Archived Template Project Codex/Spec Kit task specs live under `.specs/template/specs/archive/`; `.specify/feature.json` stays empty when there is no active feature task.
 
 Use `.codex/skills/create-project-from-template/SKILL.md` when creating a new repository from this template. That skill applies `.specs/generated/` over the copied root, renames the project identity, and removes template-only scaffolding from the generated repo.
+
+Use `.codex/cache/` for small generated skill outputs that can be recreated from repository files. Keep each skill's cache in a named subfolder.

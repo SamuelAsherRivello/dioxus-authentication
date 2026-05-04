@@ -1,0 +1,23 @@
+Stopping dx.exe process 624 (existing Dioxus server).
+Starting web app for passkey testing on localhost.
+Passkeys: http://localhost:8080
+Laptop:   http://localhost:8080
+Phone:    not available unless you pass -Lan or this laptop's Wi-Fi IPv4 address with -Address.
+
+  0.54s  INFO -----------------------------------------------------------------
+                Serving your app: web! 🚀
+                • Press [33m`ctrl+c`[0m to exit the server
+                • Press [33m`r`[0m to rebuild the app
+                • Press [33m`p`[0m to toggle automatic rebuilds
+                • Press [33m`v`[0m to toggle verbose logging
+                • Press [33m`/`[0m for more commands and shortcuts
+                Learn more at [34mhttps://dioxuslabs.com/learn/0.7/getting_started[0m
+               ----------------------------------------------------------------
+  7.14s  INFO Build completed successfully in [33m6.61s[0m, launching app! 💫
+165.16s  INFO Hotreloading: [32m\assets\main.css[0m 
+165.17s  INFO Hotreloading: [32m\assets\main.css[0m 
+229.60s  INFO Build completed in [33m4.58s[0m
+470.99s  INFO Build completed in [33m5.40s[0m
+476.25s  INFO Build completed in [33m3.94s[0m
+501.96s  INFO Build completed in [33m5.14s[0m
+507.14s  INFO Build completed in [33m3.85s[0m

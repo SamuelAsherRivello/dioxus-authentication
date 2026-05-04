@@ -22,13 +22,13 @@ Resolve the target before reading deeply:
 1. Read the spec truth.
    - Load the relevant `spec.md`, `plan.md`, `tasks.md`, checklists, and related files under the target `specs/<feature>/`, `.specs/template/specs/<feature>/`, or `.specs/generated/specs/<feature>/` directory when present.
    - Load `.specify/memory/constitution.md` when it exists.
-   - Extract concrete requirements, routes, UI states, data behavior, cache behavior, platform support, acceptance criteria, task status, and documentation promises.
+   - Extract concrete requirements, entrypoints, UI states, authentication behavior, platform support, acceptance criteria, task status, and documentation promises.
    - Do not rely on summaries alone when exact spec wording affects the decision.
    - Treat missing optional artifacts as facts, not errors. For example, a baseline spec may have `spec.md` and checklists but no `plan.md` or `tasks.md`.
 
 2. Read the codebase truth.
    - Inspect the implementation files that actually own the target behavior.
-   - Use direct evidence from code, tests, assets, routes, services, scripts, and docs. Prefer `rg`/file reads over assumptions.
+   - Use direct evidence from code, tests, assets, entrypoints, services, scripts, and docs. Prefer `rg`/file reads over assumptions.
    - Keep the pass read-only unless the user has already chosen a remediation direction.
 
 3. Compare specs to code 1:1.
@@ -56,16 +56,14 @@ For this repo, validate common spec claims against these implementation owners:
 
 | Spec Claim | Codebase Truth To Inspect |
 | ---------- | ------------------------- |
-| Routes and default page | `packages/ui/src/client/mod.rs`, `packages/ui/src/client/app.rs`, `packages/ui/src/client/components/page_header.rs` |
-| Page structure and copy | `packages/ui/src/client/pages/page01.rs`, `page02.rs`, `page03.rs`, `template_page.rs`, localization bundles under `packages/ui/assets` |
-| Template data text/source | `packages/ui/src/client/pages/page01.rs`, `packages/ui/src/client/models.rs`, `packages/ui/src/client/services/template_data_service.rs` |
-| Browser localStorage snapshots/preferences | `packages/ui/src/client/services/storage_service.rs` and wasm-gated paths |
-| Native SQLite setup/reads | `packages/ui/src/client/services/database_service.rs` and its tests |
-| Top bar controls/toasts | `packages/ui/src/client/components/page_header.rs`, `developer_tools.rs`, `toast.rs` |
+| Authentication component UI | `packages/authentication/src/component.rs`, `packages/authentication/src/prompt.rs`, `packages/authentication/assets/authentication.css` |
+| Authentication service behavior | `packages/authentication/src/service.rs` and inline tests |
+| Browser localStorage sessions | `packages/authentication/src/service.rs` wasm-gated WebAuthn paths |
+| Desktop passkey login | `packages/authentication/src/service.rs` non-wasm paths |
 | Web and desktop entrypoints | `packages/web/src/main.rs`, `packages/desktop/src/main.rs` |
 | Project docs promises | `README.md`, `AGENTS.md`, `.codex/rules/*` |
 | Template/Generated split | Root `README.md`, root `AGENTS.md`, `.specs/template/`, `.specs/generated/`, `.codex/project-identity.md`, `create-project-from-template` skill |
-| Tests and task completion | `packages/ui/tests`, inline Rust tests, `tasks.md` checkbox state when present |
+| Tests and task completion | Inline Rust tests, script tests, `tasks.md` checkbox state when present |
 
 ## Output Standard
 
@@ -103,4 +101,4 @@ Keep the report concrete and evidence-backed:
 
 ## Remediation Rules
 
-After the user chooses a direction, use the narrowest patch that restores alignment. For Dioxus behavior changes, also follow `.codex/skills/dioxus-authentication/SKILL.md`, `.codex/rules/dioxus-0.7-workflow.md`, and update the root `README.md` Dioxus Features section when feature usage, routes, cache behavior, platform support, or future work changes.
+After the user chooses a direction, use the narrowest patch that restores alignment. For Dioxus behavior changes, also follow `.codex/skills/dioxus-authentication/SKILL.md`, `.codex/rules/dioxus-0.7-workflow.md`, and update the root `README.md` Dioxus Features section when feature usage, auth behavior, platform support, or future work changes.

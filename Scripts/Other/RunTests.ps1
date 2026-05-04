@@ -53,4 +53,3 @@ Assert-Equal $zeroAddress.Warning "Fullstack backend readiness can fail on Windo
 
 Write-Host "RunWeb script tests passed."
 cargo test -p authentication --lib
-cargo test -p ui --lib --test tests

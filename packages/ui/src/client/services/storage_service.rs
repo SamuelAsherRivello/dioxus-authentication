@@ -1,12 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::client::services::localization_service::AppLanguage;
-
-#[cfg(target_arch = "wasm32")]
-use crate::client::models::TemplateDataLoadResult;
-
-#[cfg(target_arch = "wasm32")]
-const TEMPLATE_DATA_SNAPSHOT_KEY: &str = "dioxus-authentication:data-snapshot";
+use crate::client::services::localization_service::{default_locale, parse_locale};
+use dioxus_i18n::unic_langid::LanguageIdentifier;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Theme {
@@ -51,29 +46,18 @@ pub fn save_theme(theme: Theme) {
     platform::save_theme(theme);
 }
 
-pub fn load_language() -> AppLanguage {
-    platform::load_language().unwrap_or_default()
+pub fn load_language() -> LanguageIdentifier {
+    platform::load_language().unwrap_or_else(default_locale)
 }
 
-pub fn save_language(language: AppLanguage) {
+pub fn save_language(language: LanguageIdentifier) {
     platform::save_language(language);
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn load_template_data_snapshot() -> Option<TemplateDataLoadResult> {
-    platform::load_template_data_snapshot()
-}
-
-#[cfg(target_arch = "wasm32")]
-pub fn save_template_data_snapshot(result: &TemplateDataLoadResult) {
-    platform::save_template_data_snapshot(result);
-}
-
-#[cfg(target_arch = "wasm32")]
 mod platform {
-    use crate::client::models::{TemplateDataLoadResult, TemplateDataSource};
-
-    use super::{AppLanguage, Theme, TEMPLATE_DATA_SNAPSHOT_KEY};
+    use super::{default_locale, parse_locale, Theme};
+    use dioxus_i18n::unic_langid::LanguageIdentifier;
 
     const THEME_STORAGE_KEY: &str = "dioxus-authentication:theme";
     const LANGUAGE_STORAGE_KEY: &str = "dioxus-authentication:language";
@@ -97,46 +81,24 @@ mod platform {
         let _ = storage.set_item(THEME_STORAGE_KEY, &value);
     }
 
-    pub fn load_language() -> Option<AppLanguage> {
+    pub fn load_language() -> Option<LanguageIdentifier> {
         let value = local_storage()?
             .get_item(LANGUAGE_STORAGE_KEY)
             .ok()
             .flatten()?;
-        serde_json::from_str(&value).ok()
+        let raw = serde_json::from_str::<String>(&value).ok()?;
+        parse_locale(&raw).or(Some(default_locale()))
     }
 
-    pub fn save_language(language: AppLanguage) {
+    pub fn save_language(language: LanguageIdentifier) {
         let Some(storage) = local_storage() else {
             return;
         };
-        let Ok(value) = serde_json::to_string(&language) else {
+        let Ok(value) = serde_json::to_string(&language.to_string()) else {
             return;
         };
 
         let _ = storage.set_item(LANGUAGE_STORAGE_KEY, &value);
-    }
-
-    pub fn load_template_data_snapshot() -> Option<TemplateDataLoadResult> {
-        let storage = local_storage()?;
-        let value = storage
-            .get_item(TEMPLATE_DATA_SNAPSHOT_KEY)
-            .ok()
-            .flatten()?;
-        let mut result = serde_json::from_str::<TemplateDataLoadResult>(&value).ok()?;
-
-        result.source = TemplateDataSource::BrowserSnapshot;
-        Some(result)
-    }
-
-    pub fn save_template_data_snapshot(result: &TemplateDataLoadResult) {
-        let Some(storage) = local_storage() else {
-            return;
-        };
-        let Ok(value) = serde_json::to_string(result) else {
-            return;
-        };
-
-        let _ = storage.set_item(TEMPLATE_DATA_SNAPSHOT_KEY, &value);
     }
 
     fn local_storage() -> Option<web_sys::Storage> {
@@ -149,7 +111,8 @@ mod platform {
     use std::fs;
     use std::path::PathBuf;
 
-    use super::{AppLanguage, Theme};
+    use super::{default_locale, parse_locale, Theme};
+    use dioxus_i18n::unic_langid::LanguageIdentifier;
 
     pub fn load_theme() -> Option<Theme> {
         let value = fs::read_to_string(settings_path()).ok()?;
@@ -168,19 +131,20 @@ mod platform {
         }
     }
 
-    pub fn load_language() -> Option<AppLanguage> {
+    pub fn load_language() -> Option<LanguageIdentifier> {
         let value = fs::read_to_string(language_settings_path()).ok()?;
-        serde_json::from_str(&value).ok()
+        let raw = serde_json::from_str::<String>(&value).ok()?;
+        parse_locale(&raw).or(Some(default_locale()))
     }
 
-    pub fn save_language(language: AppLanguage) {
+    pub fn save_language(language: LanguageIdentifier) {
         let path = language_settings_path();
 
         if let Some(parent) = path.parent() {
             let _ = fs::create_dir_all(parent);
         }
 
-        if let Ok(value) = serde_json::to_string(&language) {
+        if let Ok(value) = serde_json::to_string(&language.to_string()) {
             let _ = fs::write(path, value);
         }
     }
