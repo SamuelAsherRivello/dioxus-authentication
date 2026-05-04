@@ -1,0 +1,77 @@
+.page-header__page-link[data-tooltip],
+.developer-tools [data-tooltip] {
+  position: relative;
+}
+
+.page-header__page-link[data-tooltip]::before,
+.page-header__page-link[data-tooltip]::after,
+.developer-tools [data-tooltip]::before,
+.developer-tools [data-tooltip]::after {
+  position: absolute;
+  right: 50%;
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(50%, 4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.page-header__page-link[data-tooltip]::before,
+.developer-tools [data-tooltip]::before {
+  content: "";
+  top: calc(100% + 5px);
+  border: 6px solid transparent;
+  border-bottom-color: var(--app-control-border);
+}
+
+.page-header__page-link[data-tooltip]::after,
+.developer-tools [data-tooltip]::after {
+  content: attr(data-tooltip);
+  top: calc(100% + 16px);
+  width: max-content;
+  max-width: min(240px, calc(100vw - 32px));
+  padding: 8px 12px;
+  border: 1px solid var(--app-control-border);
+  border-radius: 8px;
+  background: var(--app-control);
+  color: var(--app-text-muted);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  box-shadow: var(--app-shadow-soft);
+}
+
+.page-header__page-link[data-tooltip]:hover::before,
+.page-header__page-link[data-tooltip]:hover::after,
+.page-header__page-link[data-tooltip]:focus-visible::before,
+.page-header__page-link[data-tooltip]:focus-visible::after,
+.developer-tools [data-tooltip]:hover::before,
+.developer-tools [data-tooltip]:hover::after,
+.developer-tools [data-tooltip]:focus-visible::before,
+.developer-tools [data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(50%, 0);
+}
+
+.page-header__pages .page-header__page-link:first-child[data-tooltip]::after,
+.developer-tools [data-tooltip]::after {
+  right: 0;
+  transform: translate(0, 4px);
+}
+
+.page-header__pages .page-header__page-link:first-child[data-tooltip]:hover::after,
+.page-header__pages .page-header__page-link:first-child[data-tooltip]:focus-visible::after,
+.developer-tools [data-tooltip]:hover::after,
+.developer-tools [data-tooltip]:focus-visible::after {
+  transform: translate(0, 0);
+}
+
+.page-header__page-link[data-tooltip]:hover::after,
+.page-header__page-link[data-tooltip]:focus-visible::after,
+.developer-tools [data-tooltip]:hover::after,
+.developer-tools [data-tooltip]:focus-visible::after {
+  background: var(--app-control-hover);
+  color: var(--app-accent-strong);
+}

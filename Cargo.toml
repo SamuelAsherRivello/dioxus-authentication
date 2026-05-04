@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+default-members = ["packages/web"]
+members = [
+    "packages/authentication",
+    "packages/ui",
+    "packages/web",
+    "packages/desktop",
+]
+
+[workspace.dependencies]
+dioxus = { version = "0.7.7", features = ["router"] }
+
+# workspace
+authentication = { path = "packages/authentication" }
+ui = { path = "packages/ui" }

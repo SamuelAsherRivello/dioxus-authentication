@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Project From Template"
+  short_description: "Create a named repo from generated payload"
+  default_prompt: "Use $create-project-from-template to create a new git repo from this Dioxus template's Generated Project payload."
