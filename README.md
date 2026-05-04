@@ -4,18 +4,19 @@ Dioxus Authentication is a reusable passkey-first authentication component for D
 
 ## TOC
 
-| Section | Link |
-| ------- | ---- |
-| Live Demo | [Live Demo](#live-demo) |
-| Pics | [Pics](#pics) |
-| Getting Started | [Getting Started](#getting-started) |
-| Authentication Component | [Authentication Component](#authentication-component) |
-| Demo | [Demo](#demo) |
-| Bring Auth Into Your Project | [Bring Auth Into Your Project](#bring-auth-into-your-project) |
-| Details | [Details](#details) |
-| Structure | [Structure](#structure) |
-| Features | [Features](#features) |
-| Credits | [Credits](#credits) |
+- [TOC](#toc)
+- [Live Demo](#live-demo)
+- [Pics](#pics)
+- [Getting Started](#getting-started)
+  - [Common Scripts](#common-scripts)
+  - [Other Scripts](#other-scripts)
+- [Authentication Component](#authentication-component)
+- [Demo](#demo)
+- [Bring Auth Into Your Project](#bring-auth-into-your-project)
+- [Details](#details)
+  - [Structure](#structure)
+  - [Features](#features)
+- [Credits](#credits)
 
 ## Live Demo
 
@@ -143,58 +144,6 @@ The shared demo app preserves the starter template behavior for routing, localiz
 | 6 | Production server verification | ❌ | Future work should wire Dioxus fullstack server functions to `webauthn-rs` or another production passkey backend. |
 | 7 | Username/password auth | ❌ | Intentionally out of scope for this passkey-first component. |
 | 8 | Social login | ❌ | Intentionally out of scope for this passkey-first component. |
-
-#### Dioxus Components
-
-This grid covers the Dioxus Components gallery. ✅ means this repo imports or implements that Dioxus Components component, not just a similarly named HTML element or local utility.
-
-Related tech: [Dioxus Components](https://dioxuslabs.com/components/)
-
-| # | Component Docs | Usage |
-| - | -------------- | ----- |
-| 1 | [Alert Dialog](https://dioxuslabs.com/components/component/?name=alert_dialog) | ✅ Auth prompt feedback uses `dioxus_primitives::alert_dialog`. |
-| 2 | [Aspect Ratio](https://dioxuslabs.com/components/component/?name=aspect_ratio) | ✅ Preserved in the shared UI demo package from the starter template. |
-| 3 | Other gallery components | ❌ Not used yet. |
-
-#### Dioxus Features
-
-Keep this section updated as development continues. When routes, platform support, cache behavior, Dioxus feature usage, or Dioxus Components usage changes, update the matching rows in the same change.
-
-Related tech: [Dioxus docs](https://dioxuslabs.com/learn/0.7/)
-
-| # | Feature | Docs | In Project? | Usage |
-| - | ------- | ---- | ----------- | ----- |
-| 1 | Components | [Components](https://dioxuslabs.com/learn/0.7/essentials/ui/components/) | ✅ | Shared UI and auth package use `#[component] fn Name(...) -> Element`; see [`AuthenticationComponent`](./packages/authentication/src/component.rs). |
-| 2 | RSX markup | [RSX](https://dioxuslabs.com/learn/0.7/essentials/ui/rsx/) | ✅ | Pages and components render HTML-like UI through `rsx!`; see [`Page01`](./packages/ui/src/client/pages/page01.rs). |
-| 3 | Signals | [Signals](https://dioxuslabs.com/learn/0.7/essentials/basics/signals/) | ✅ | `AuthenticationComponent` uses signals for auth status, busy state, and prompt feedback. |
-| 4 | Router | [Routes](https://dioxuslabs.com/learn/0.7/essentials/router/routes/) | ✅ | The demo keeps the shared Dioxus router in [`packages/ui/src/client/mod.rs`](./packages/ui/src/client/mod.rs). |
-| 5 | Asset macro | [Assets](https://dioxuslabs.com/learn/0.7/essentials/ui/assets/) | ✅ | The auth package injects `authentication.css` through `asset!("/assets/authentication.css")`. |
-| 6 | Document head links | [Assets](https://dioxuslabs.com/learn/0.7/essentials/ui/assets/) | ✅ | Web, desktop, and auth components inject checked-in CSS through Dioxus document links. |
-| 7 | Async work | [Async](https://dioxuslabs.com/learn/0.7/essentials/basics/async/) | ✅ | `AuthenticationComponent` calls async service methods through `use_future` and spawned event handlers. |
-| 8 | Error boundaries | [Error handling](https://dioxuslabs.com/learn/0.7/essentials/basics/error_handling/) | ✅ | The demo shell preserves the starter app error boundary. |
-| 9 | Browser localStorage | [Web platform](https://dioxuslabs.com/learn/0.7/guides/platforms/web/) | ✅ | Auth demo sessions and starter template snapshots use browser localStorage. |
-| 10 | Native SQLite cache | [Async](https://dioxuslabs.com/learn/0.7/essentials/basics/async/) | ✅ | Native starter data still uses SQLite under `data/` for non-wasm builds. |
-| 11 | First-time DB creation | [Async](https://dioxuslabs.com/learn/0.7/essentials/basics/async/) | ✅ | First-time native schema and seed setup stays in `create_database_if_missing()`. |
-| 12 | Localization | [dioxus-i18n](https://crates.io/crates/dioxus-i18n) | ✅ | The demo shell preserves Fluent bundles for English, Spanish, Portuguese, and French. |
-| 13 | Web target | [Web platform](https://dioxuslabs.com/learn/0.7/guides/platforms/web/) | ✅ | [`packages/web`](./packages/web/src/main.rs) launches the shared demo UI for browser passkey testing. |
-| 14 | Desktop target | [Desktop platform](https://dioxuslabs.com/learn/0.7/guides/platforms/desktop/) | ✅ | [`packages/desktop`](./packages/desktop/src/main.rs) launches the same shared demo UI with explicit passkey unsupported status. |
-| 15 | Server functions | [Server functions](https://dioxuslabs.com/learn/0.7/essentials/fullstack/server_functions/) | ❌ | Not implemented yet; recommended for production passkey challenge and verification flows. |
-
-#### Github Features
-
-| Related tech | Link |
-| ------------ | ---- |
-| GitHub Actions | [GitHub Actions docs](https://docs.github.com/en/actions) |
-| GitHub Pages | [Custom GitHub Pages workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) |
-
-Keep [`.github/workflows/export-web-build-to-github-pages.yml`](./.github/workflows/export-web-build-to-github-pages.yml) as the only GitHub Pages deployment workflow. Do not create a branch-based Pages action; it can fight with this custom export workflow.
-
-| Option | Instructions |
-| ------ | ------------ |
-| Enable Pages manually | In GitHub, open `Settings > Pages` and set `Source` to `GitHub Actions`. Do not select a branch source. |
-| Add `PAGES_ADMIN_TOKEN` | Add a repository secret named `PAGES_ADMIN_TOKEN` with Pages write permission so the workflow can enable or repair Pages setup without creating another action. |
-
-The GitHub Actions display name is `ExportWebBuildToGithubPages`.
 
 ## Credits
 
