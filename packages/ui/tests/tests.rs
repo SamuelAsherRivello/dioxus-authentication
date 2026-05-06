@@ -1,5 +1,6 @@
 use dioxus_i18n::fluent::{FluentArgs, FluentBundle, FluentResource};
 use dioxus_i18n::unic_langid::LanguageIdentifier;
+use ui::client::pages::home_page::origin_warning_target;
 use ui::{default_locale, Theme};
 
 const LOCALES: [(&str, &str); 4] = [
@@ -120,4 +121,38 @@ fn locale_files_format_all_ui_translation_keys() {
             );
         }
     }
+}
+
+#[test]
+fn origin_warning_links_loopback_http_to_localhost() {
+    let warning = origin_warning_target("http:", "127.0.0.1", "8080", "/demo", "?a=1", "#top")
+        .expect("loopback HTTP should warn");
+
+    assert_eq!(warning.current_origin, "http://127.0.0.1:8080");
+    assert_eq!(warning.target_origin, "http://localhost:8080");
+    assert_eq!(warning.target_url, "http://localhost:8080/demo?a=1#top");
+}
+
+#[test]
+fn origin_warning_accepts_https_hosts() {
+    assert_eq!(
+        origin_warning_target("https:", "samuelasherivello.github.io", "", "/", "", ""),
+        None
+    );
+}
+
+#[test]
+fn origin_warning_accepts_localhost_http() {
+    assert_eq!(
+        origin_warning_target("http:", "localhost", "8080", "/", "", ""),
+        None
+    );
+}
+
+#[test]
+fn origin_warning_ignores_non_local_http_hosts() {
+    assert_eq!(
+        origin_warning_target("http:", "example.com", "", "/", "", ""),
+        None
+    );
 }

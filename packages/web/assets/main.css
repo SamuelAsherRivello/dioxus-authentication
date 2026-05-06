@@ -427,16 +427,18 @@ textarea {
 .auth-card {
     display: grid;
     box-sizing: border-box;
-    width: 480px;
+    width: fit-content;
     height: auto;
     max-width: calc(100vw - 32px);
+    min-width: 0;
+    overflow: hidden;
     gap: 18px;
     padding: 24px;
 }
 
 .home-auth-embed {
     display: grid;
-    width: 480px;
+    width: fit-content;
     max-width: 100%;
     height: auto;
     max-height: none;
@@ -444,7 +446,7 @@ textarea {
 
 .home-auth-embed > .auth-card {
     box-sizing: border-box;
-    width: 480px;
+    width: fit-content;
     max-width: 100%;
     height: auto;
     max-height: none;

@@ -19,7 +19,13 @@ const TRANSLATION_KEYS: &[&str] = &[
     "auth-status.logged-out",
     "auth-detail.checking",
     "auth-detail.error",
+    "auth-detail.logged-in-method-prefix",
+    "auth-detail.timestamp-label",
+    "auth-detail.expiration-label",
+    "auth-detail.hours-unit",
+    "auth-detail.user-key-label",
     "auth-detail.logged-in-session",
+    "auth-detail.database-key",
     "auth-detail.session-expires",
     "auth-detail.web-passkey",
     "auth-detail.web-unavailable",
@@ -77,6 +83,7 @@ fn authentication_locale_files_format_all_auth_translation_keys() {
     args.set("method", "passkey");
     args.set("authenticated_at", "2026-05-06 10:30");
     args.set("expiration_hours", 48);
+    args.set("passkey_database_key", "demo-key");
 
     for (locale, source) in LOCALES {
         let language_id = LanguageIdentifier::from_bytes(locale.as_bytes())

@@ -49,8 +49,10 @@ mod app;
 pub use app::App;
 
 pub mod pages {
+    pub mod demo_snippet;
     pub mod home_page;
 }
+pub use pages::demo_snippet::DemoSnippet;
 pub use pages::home_page::HomePage;
 
 pub mod components {

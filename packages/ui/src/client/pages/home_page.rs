@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 use dioxus_i18n::t;
 
 use crate::client::components::prompt::MessagePrompt;
+use crate::client::DemoSnippet;
 use authentication::prelude::*;
 
 const PAGE_CLASS: &str = "home-page";
@@ -12,7 +13,6 @@ const SECTION_CLASS: &str = "home-section";
 const SECTION_TITLE_CLASS: &str = "home-section__title";
 const DEMO_WARNING_CLASS: &str = "home-demo-warning";
 const AUTH_EMBED_CLASS: &str = "home-auth-embed";
-const CODE_BLOCK_CLASS: &str = "home-code";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct DemoOriginWarning {
@@ -21,32 +21,27 @@ struct DemoOriginWarning {
     target_url: String,
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct DemoOriginWarningTarget {
-    current_origin: String,
-    target_origin: String,
-    target_url: String,
+pub struct DemoOriginWarningTarget {
+    pub current_origin: String,
+    pub target_origin: String,
+    pub target_url: String,
 }
 
 #[component]
 pub fn HomePage() -> Element {
-
-
     // Configuration
+    let app_id = "my_app_id"; // Unique key for your app
     let mut auth_status = use_signal(|| None::<Result<AuthenticationStatus, String>>);
     let mut auth_is_busy = use_signal(|| true);
     let auth_prompt_message = use_signal(|| None::<String>);
     let mut is_logout_confirmation_open = use_signal(|| false);
-    let session_config = AuthenticationSessionConfig::new(
-        48,
-        "my_app_id",
-    );
+    let session_config = AuthenticationSessionConfig::new(48, app_id);
     let passkey_config = AuthenticationPasskeyConfig::new(
-        "my_app_id".to_string(),
-        "My Dioxus Authentication".to_string(),
-        "my_email@my_email.com".to_string(),
-        "My Demo User".to_string(),
+        app_id,
+        "My Dioxus Authentication",
+        "my_email@my_email.com",
+        "My Demo User",
     );
     let session_config_for_status = session_config.clone();
     use_future(move || {
@@ -56,7 +51,6 @@ pub fn HomePage() -> Element {
             auth_is_busy.set(false);
         }
     });
-
 
     // Callbacks
     let session_config_for_login = session_config.clone();
@@ -131,7 +125,6 @@ pub fn HomePage() -> Element {
         });
     });
 
-
     // Component
     let auth_view_config = AuthenticationViewConfig::new(
         session_config,
@@ -160,82 +153,7 @@ pub fn HomePage() -> Element {
 
             section { class: SECTION_CLASS,
                 h2 { class: SECTION_TITLE_CLASS, {t!("usage-section-title")} }
-                pre { class: CODE_BLOCK_CLASS,
-                    code {
-                        span { class: "home-code__keyword", "use" }
-                        " dioxus::prelude::*;\n"
-                        span { class: "home-code__keyword", "use" }
-                        " authentication::prelude::*;\n\n"
-                        span { class: "home-code__attribute", "#[component]" }
-                        "\n"
-                        span { class: "home-code__keyword", "fn" }
-                        " "
-                        span { class: "home-code__function", "Home" }
-                        "() -> "
-                        span { class: "home-code__type", "Element" }
-                        " {{\n\n\n    "
-                        span { class: "home-code__comment", "// Configuration" }
-                        "\n    "
-                        span { class: "home-code__keyword", "let" }
-                        " session_config = "
-                        span { class: "home-code__type", "AuthenticationSessionConfig" }
-                        "::"
-                        span { class: "home-code__function", "new" }
-                        "(\n        "
-                        span { class: "home-code__number", "48" }
-                        ",\n        \"my_app_id\", "
-                        span { class: "home-code__comment", "// Reuse this key" }
-                        "\n    );\n    "
-                        span { class: "home-code__keyword", "let" }
-                        " passkey_config = "
-                        span { class: "home-code__type", "AuthenticationPasskeyConfig" }
-                        "::"
-                        span { class: "home-code__function", "new" }
-                        "(\n        \"my_app_id\", "
-                        span { class: "home-code__comment", "// Same app key" }
-                        "\n        \"My Dioxus Authentication\", "
-                        span { class: "home-code__comment", "// Prompt app name" }
-                        "\n        \"my_email@my_email.com\", "
-                        span { class: "home-code__comment", "// Account name" }
-                        "\n        \"My Demo User\", "
-                        span { class: "home-code__comment", "// Friendly label" }
-                        "\n    );\n\n\n    "
-                        span { class: "home-code__comment", "// Callbacks" }
-                        "\n    "
-                        span { class: "home-code__keyword", "let" }
-                        " on_login = EventHandler::new(move |_provider_id: String| {{\n        println!(\"You are logged in\");\n    }});\n    "
-                        span { class: "home-code__keyword", "let" }
-                        " on_logout = EventHandler::new(move |_| {{\n        println!(\"You are logged out\");\n    }});\n\n\n    "
-                        span { class: "home-code__comment", "// Component" }
-                        "\n    "
-                        span { class: "home-code__keyword", "let" }
-                        " config = "
-                        span { class: "home-code__type", "AuthenticationViewConfig" }
-                        "::"
-                        span { class: "home-code__function", "new" }
-                        "(\n        session_config, "
-                        span { class: "home-code__comment", "// Session settings" }
-                        "\n        vec![passkey_provider(\"PassKey\")], "
-                        span { class: "home-code__comment", "// Pick one provider" }
-                        "\n        auth_status, "
-                        span { class: "home-code__comment", "// Current state" }
-                        "\n        auth_is_busy, "
-                        span { class: "home-code__comment", "// Loading state" }
-                        "\n        on_login, "
-                        span { class: "home-code__comment", "// Sign in" }
-                        "\n        on_logout, "
-                        span { class: "home-code__comment", "// Sign out" }
-                        "\n    );\n\n    "
-                        span { class: "home-code__macro", "rsx!" }
-                        " {{\n        "
-                        span { class: "home-code__type", "AuthenticationView" }
-                        " {{\n            "
-                        span { class: "home-code__property", "config" }
-                        "\n        "
-                        "}}\n    "
-                        "}}\n"
-                    }
-                }
+                DemoSnippet {}
             }
 
             section { class: SECTION_CLASS,
@@ -289,8 +207,7 @@ fn origin_warning(
     })
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
-fn origin_warning_target(
+pub fn origin_warning_target(
     protocol: &str,
     hostname: &str,
     port: &str,
@@ -317,7 +234,6 @@ fn origin_warning_target(
     })
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn format_origin(protocol: &str, hostname: &str, port: &str) -> String {
     if port.is_empty() {
         format!("{protocol}//{hostname}")
@@ -326,7 +242,6 @@ fn format_origin(protocol: &str, hostname: &str, port: &str) -> String {
     }
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn is_local_testing_host(hostname: &str) -> bool {
     if hostname.eq_ignore_ascii_case("localhost") {
         return true;
@@ -345,7 +260,6 @@ fn is_local_testing_host(hostname: &str) -> bool {
         || (octets[0] == 192 && octets[1] == 168)
 }
 
-#[cfg(any(target_arch = "wasm32", test))]
 fn parse_ipv4_octets(hostname: &str) -> Option<[u8; 4]> {
     let mut octets = [0_u8; 4];
     let mut count = 0;
@@ -382,43 +296,4 @@ fn current_demo_origin_warning() -> Option<DemoOriginWarning> {
 #[cfg(not(target_arch = "wasm32"))]
 fn current_demo_origin_warning() -> Option<DemoOriginWarning> {
     None
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn origin_warning_links_loopback_http_to_localhost() {
-        let warning = origin_warning_target("http:", "127.0.0.1", "8080", "/demo", "?a=1", "#top")
-            .expect("loopback HTTP should warn");
-
-        assert_eq!(warning.current_origin, "http://127.0.0.1:8080");
-        assert_eq!(warning.target_origin, "http://localhost:8080");
-        assert_eq!(warning.target_url, "http://localhost:8080/demo?a=1#top");
-    }
-
-    #[test]
-    fn origin_warning_accepts_https_hosts() {
-        assert_eq!(
-            origin_warning_target("https:", "samuelasherivello.github.io", "", "/", "", ""),
-            None
-        );
-    }
-
-    #[test]
-    fn origin_warning_accepts_localhost_http() {
-        assert_eq!(
-            origin_warning_target("http:", "localhost", "8080", "/", "", ""),
-            None
-        );
-    }
-
-    #[test]
-    fn origin_warning_ignores_non_local_http_hosts() {
-        assert_eq!(
-            origin_warning_target("http:", "example.com", "", "/", "", ""),
-            None
-        );
-    }
 }

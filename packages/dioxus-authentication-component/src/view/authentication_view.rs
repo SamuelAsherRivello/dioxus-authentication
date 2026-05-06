@@ -3,8 +3,7 @@ use dioxus_i18n::t;
 use dioxus_primitives::tabs::{TabContent, TabList, TabTrigger, Tabs};
 
 use crate::{
-    AuthenticationMethod, AuthenticationProvider, AuthenticationSessionConfig,
-    AuthenticationStatus,
+    AuthenticationMethod, AuthenticationProvider, AuthenticationSessionConfig, AuthenticationStatus,
 };
 
 const AUTHENTICATION_CSS: Asset = asset!("/assets/styles/authentication_styles.css");
@@ -81,12 +80,12 @@ pub fn AuthenticationView(config: AuthenticationViewConfig) -> Element {
         .and_then(|result: &Result<AuthenticationStatus, String>| result.as_ref().ok())
         .map(|status| status.login_supported)
         .unwrap_or(false);
-    let status_text = match current_status {
+    let status_text = match current_status.as_ref() {
         Some(Ok(ref status)) => localized_status_text(status),
         Some(Err(_)) => t!("auth-status.error"),
         None => t!("auth-status.checking"),
     };
-    let detail_text = match current_status {
+    let detail_text = match current_status.as_ref() {
         Some(Ok(ref status)) => localized_detail_text(status, expiration_hours),
         Some(Err(_)) => t!("auth-detail.error"),
         None => t!("auth-detail.checking"),
@@ -171,17 +170,29 @@ fn localized_detail_text(status: &AuthenticationStatus, expiration_hours: u32) -
     if status.is_authenticated {
         let method = localized_method_label(status.auth_method);
         if let Some(authenticated_at) = status.authenticated_at.as_deref() {
-            return t!(
-                "auth-detail.logged-in-session",
-                method: method,
-                authenticated_at: authenticated_at,
-                expiration_hours: expiration_hours
+            let mut detail_text = format!(
+                "{} {method}.\n{}: {authenticated_at}\n{}: {expiration_hours} {}",
+                t!("auth-detail.logged-in-method-prefix"),
+                t!("auth-detail.timestamp-label"),
+                t!("auth-detail.expiration-label"),
+                t!("auth-detail.hours-unit")
             );
+
+            if let Some(passkey_database_key) = status.passkey_database_key.as_deref() {
+                detail_text.push_str("\n\n");
+                detail_text.push_str(&format!(
+                    "{}: {passkey_database_key}",
+                    t!("auth-detail.user-key-label")
+                ));
+            }
+
+            return detail_text;
         }
 
-        return t!(
-            "auth-detail.session-expires",
-            expiration_hours: expiration_hours
+        return format!(
+            "{}: {expiration_hours} {}",
+            t!("auth-detail.expiration-label"),
+            t!("auth-detail.hours-unit")
         );
     }
 

@@ -22,6 +22,8 @@ pub struct AuthenticationStatus {
     pub passkey_supported: bool,
     /// Browser-local display timestamp for the active session.
     pub authenticated_at: Option<String>,
+    /// Stored passkey credential id that can identify the signed-in user record.
+    pub passkey_database_key: Option<String>,
     /// Authentication method used by the current target.
     pub auth_method: AuthenticationMethod,
 }
@@ -32,6 +34,7 @@ struct AuthBackendStatus {
     login_supported: bool,
     passkey_supported: bool,
     authenticated_at: Option<String>,
+    passkey_database_key: Option<String>,
     auth_method: AuthenticationMethod,
 }
 
@@ -171,6 +174,7 @@ impl AuthenticationService {
             login_supported: status.login_supported,
             passkey_supported: status.passkey_supported,
             authenticated_at: status.authenticated_at.clone(),
+            passkey_database_key: status.passkey_database_key.clone(),
             auth_method: status.auth_method,
         })
     }
@@ -231,13 +235,18 @@ fn passkey_api_surface_error(
 async fn auth_backend_status(
     config: AuthenticationSessionConfig,
 ) -> Result<AuthBackendStatus, String> {
+    let app_id = config.app_id().to_string();
     let authenticated_at = read_session_authenticated_at(config);
+    let passkey_database_key = authenticated_at
+        .as_ref()
+        .and_then(|_| read_passkey_database_key(&app_id));
 
     Ok(AuthBackendStatus {
         is_authenticated: authenticated_at.is_some(),
         login_supported: webauthn_supported(),
         passkey_supported: webauthn_supported(),
         authenticated_at,
+        passkey_database_key,
         auth_method: AuthenticationMethod::WebPasskey,
     })
 }
@@ -256,7 +265,11 @@ async fn auth_backend_logout(config: AuthenticationSessionConfig) -> Result<(), 
 async fn auth_backend_status(
     config: AuthenticationSessionConfig,
 ) -> Result<AuthBackendStatus, String> {
+    let app_id = config.app_id().to_string();
     let authenticated_at = windows_passkey::read_session_authenticated_at(config);
+    let passkey_database_key = authenticated_at
+        .as_ref()
+        .and_then(|_| windows_passkey::read_passkey_database_key(&app_id));
     let passkey_supported = windows_passkey::supported();
 
     Ok(AuthBackendStatus {
@@ -264,6 +277,7 @@ async fn auth_backend_status(
         login_supported: passkey_supported,
         passkey_supported,
         authenticated_at,
+        passkey_database_key,
         auth_method: AuthenticationMethod::WindowsPasskey,
     })
 }
@@ -287,6 +301,7 @@ async fn auth_backend_status(
         login_supported: false,
         passkey_supported: false,
         authenticated_at: None,
+        passkey_database_key: None,
         auth_method: AuthenticationMethod::UnsupportedNative,
     })
 }
@@ -352,6 +367,19 @@ mod windows_passkey {
             None
         } else {
             Some(format_timestamp(authenticated_at_epoch_seconds))
+        }
+    }
+
+    pub fn read_passkey_database_key(app_id: &str) -> Option<String> {
+        let state = read_state().ok()?;
+        if state
+            .passkey_config
+            .as_ref()
+            .is_some_and(|passkey_config| passkey_config.app_id() == app_id)
+        {
+            state.credential_id_hex
+        } else {
+            None
         }
     }
 
@@ -708,6 +736,11 @@ mod web_passkey {
         }
     }
 
+    pub fn read_passkey_database_key(app_id: &str) -> Option<String> {
+        let credential_key = storage_key(CREDENTIAL_KEY, app_id);
+        read_storage_value(&credential_key).ok().flatten()
+    }
+
     pub fn read_storage_value(key: &str) -> Result<Option<String>, String> {
         let storage = web_sys::window()
             .and_then(|window| window.local_storage().ok().flatten())
@@ -1037,7 +1070,8 @@ mod web_passkey {
 
 #[cfg(target_arch = "wasm32")]
 use web_passkey::{
-    login as web_login, read_session_authenticated_at, supported as webauthn_supported,
+    login as web_login, read_passkey_database_key, read_session_authenticated_at,
+    supported as webauthn_supported,
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -1083,6 +1117,7 @@ mod tests {
             login_supported,
             passkey_supported,
             authenticated_at: authenticated_at.map(str::to_string),
+            passkey_database_key: None,
             auth_method,
         }
     }

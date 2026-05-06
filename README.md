@@ -58,6 +58,7 @@ The static web build is exported and hosted automatically with each push to the 
 | `prelude` | Short import module for common component, service, config, provider, locale, and constant exports. |
 | `authentication_locales()` | Built-in auth Fluent resources for app-level `dioxus-i18n` setup. |
 | `AuthenticationService` | Async service boundary for current status, login, logout, session expiration, and platform support checks. |
+| `AuthenticationStatus` | Rendered auth state, including the active passkey credential id to use as a database key after login. |
 | `AuthenticationSessionConfig` | Small configuration type for the local demo session lifetime. |
 | `AuthenticationProvider` | Provider option model with an id and localized display text for the one-choice provider bar. |
 | `AuthenticationPasskeyConfig` | Passkey prompt metadata for app id, relying-party name, account name, and friendly display name. |
@@ -73,21 +74,23 @@ fn Home() -> Element {
 
 
     // Configuration
+    let app_id = "my_app_id"; // Unique key for your app
+    let username = "my_email@my_email.com";
     let session_config = AuthenticationSessionConfig::new(
-        48,
-        "my_app_id", // Reuse this key
+        48, // Hours till expiration
+        app_id,
     );
     let passkey_config = AuthenticationPasskeyConfig::new(
-        "my_app_id", // Same app key
-        "My Dioxus Authentication", // Prompt app name
-        "my_email@my_email.com", // Account name
-        "My Demo User", // Friendly label
+        app_id,
+        "My Dioxus Authentication", // App label
+        "my_email@my_email.com", // User identifier, any format
+        "My Demo User", // User label
     );
 
 
     // Callbacks
     let on_login = EventHandler::new(move |_provider_id: String| {
-        println!("You are logged in");
+        println!("You are logged in as user {username}");
     });
     let on_logout = EventHandler::new(move |_| {
         println!("You are logged out");
@@ -116,7 +119,7 @@ fn Home() -> Element {
 | `AuthenticationProvider` | `AuthenticationViewConfig` | Provider id and localized display text render as a radio choice; `PassKey` is the only built-in value for now. |
 | Browser/OS prompt chrome | Secure origin and platform UI | Not fully customizable; the prompt may still show the current domain, such as `localhost`. |
 
-The local demo creates a new demo credential when `AuthenticationPasskeyConfig` values change. Keep `app_id = "my_app_id"` stable to reuse the demo key, or randomize it while testing to force a fresh local passkey flow.
+The local demo creates a new demo credential when `AuthenticationPasskeyConfig` values change. Keep `app_id = "my_app_id"` stable to reuse the demo key, or randomize it while testing to force a fresh local passkey flow. After login, `AuthenticationStatus.passkey_database_key` exposes the stored credential id that can key a local demo database row.
 
 ## Demo
 
@@ -185,7 +188,7 @@ The demo entrypoints render the authentication package directly. The reusable co
 | - | ------- | ----------- | ----- |
 | 1 | Reusable Dioxus auth component | ✅ | [`AuthenticationView`](./packages/dioxus-authentication-component/src/view/authentication_view.rs) renders the auth card and login/logout stateful controls with styling. |
 | 2 | Auth service boundary | ✅ | [`AuthenticationService`](./packages/dioxus-authentication-component/src/services/authentication_service.rs) owns status, login, logout, expiration, and platform support checks. |
-| 3 | Browser passkey demo | ✅ | Web builds use typed WebAuthn browser APIs through `web-sys`, keyed by stable `app_id` demo storage. |
+| 3 | Browser passkey demo | ✅ | Web builds use typed WebAuthn browser APIs through `web-sys`, keyed by stable `app_id` demo storage, and expose the stored credential id after login. |
 | 4 | Prompt orchestration | ✅ | `AuthenticationView` receives status and action callbacks while `AuthenticationConfirmationPrompt` remains an optional package component. |
 | 5 | Provider selection | ✅ | `AuthenticationViewConfig` accepts provider options and renders a radio bar; `PassKey` is the only provider today. |
 | 6 | Local demo session expiration | ✅ | Browser localStorage stores a timestamped demo session and expires it through `AuthenticationSessionConfig`. |

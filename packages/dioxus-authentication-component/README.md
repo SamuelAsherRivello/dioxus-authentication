@@ -12,6 +12,7 @@ Reusable Dioxus passkey authentication package for web and desktop apps.
 | `prelude` | Short import module for common component, service, config, provider, locale, and constant exports. |
 | `authentication_locales()` | Built-in Fluent resources for registering the auth package with a Dioxus i18n provider. |
 | `AuthenticationService` | Service boundary for status, login, logout, session expiration, browser WebAuthn checks, and native Windows WebAuthn checks. |
+| `AuthenticationStatus` | Rendered auth state, including the active passkey credential id to use as a database key after login. |
 | `AuthenticationProvider` | Provider option model with an id and display text for the one-choice provider bar. |
 | `AuthenticationPasskeyConfig` | Passkey registration metadata for app id, relying-party name, user name, and user display name. |
 | Session time format | Short local timestamp using 24-hour time with timezone shown onscreen. |
@@ -27,21 +28,23 @@ fn Home() -> Element {
 
 
     // Configuration
+    let app_id = "my_app_id"; // Unique key for your app
+    let username = "my_email@my_email.com";
     let session_config = AuthenticationSessionConfig::new(
-        48,
-        "my_app_id", // Reuse this key
+        48, // Hours till expiration
+        app_id,
     );
     let passkey_config = AuthenticationPasskeyConfig::new(
-        "my_app_id", // Same app key
-        "My Dioxus Authentication", // Prompt app name
-        "my_email@my_email.com", // Account name
-        "My Demo User", // Friendly label
+        app_id,
+        "My Dioxus Authentication", // App label
+        "my_email@my_email.com", // User identifier, any format
+        "My Demo User", // User label
     );
 
 
     // Callbacks
     let on_login = EventHandler::new(move |_provider_id: String| {
-        println!("You are logged in");
+        println!("You are logged in as user {username}");
     });
     let on_logout = EventHandler::new(move |_| {
         println!("You are logged out");
@@ -86,4 +89,5 @@ Passkey RP and user metadata are now supplied in the flow before calling
 | Config Value | Default | Effect |
 | ------------ | ------- | ------ |
 | `app_id` | `my_app_id` | Keep it stable to reuse the demo key; change it to force new local test credentials. |
+| `passkey_database_key` | Generated credential id | Exposed on `AuthenticationStatus` after login so an app can key related demo data. |
 | `providers` | `PassKey` | Renders the provider radio bar and passes the selected provider id into login. |
