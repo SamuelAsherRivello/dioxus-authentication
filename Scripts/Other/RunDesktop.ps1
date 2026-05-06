@@ -29,4 +29,13 @@ Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
         Stop-ProcessById -ProcessId $_.ProcessId -Reason "existing Dioxus server"
     }
 
-dx serve --package desktop --desktop
+Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+    Where-Object {
+        $_.Name -like "desktop*.exe" -and
+        $_.CommandLine -like "*dioxus-authentication*target*dx*desktop*"
+    } |
+    ForEach-Object {
+        Stop-ProcessById -ProcessId $_.ProcessId -Reason "existing desktop app"
+    }
+
+dx serve --package desktop --desktop --open false

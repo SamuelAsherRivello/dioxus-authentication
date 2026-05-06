@@ -4,7 +4,7 @@
     width: fit-content;
     height: auto;
     max-width: calc(100vw - 32px);
-    min-width: 0;
+    min-width: min(600px, calc(100vw - 32px));
     overflow: hidden;
     gap: 18px;
     padding: 24px;
@@ -148,10 +148,36 @@
 
 .auth-card__provider-content {
     display: grid;
+    width: 100%;
     min-width: 0;
     gap: 16px;
     padding-top: 2px;
     outline: none;
+}
+
+.auth-card__user-key {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    color: var(--app-text-subtle, #687789);
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+.auth-card__user-key-label {
+    color: var(--app-text, #111827);
+    font-weight: 800;
+}
+
+.auth-card__user-key-value {
+    color: inherit;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 13px;
 }
 
 .auth-card__button-menu,
@@ -290,6 +316,7 @@
 @media (max-width: 520px) {
     .auth-card {
         width: calc(100vw - 40px);
+        min-width: 0;
         padding: 22px;
     }
 

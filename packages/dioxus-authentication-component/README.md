@@ -11,8 +11,9 @@ Reusable Dioxus passkey authentication package for web and desktop apps.
 | `AuthenticationConfirmationPrompt` | Optional localized logout confirmation dialog. |
 | `prelude` | Short import module for common component, service, config, provider, locale, and constant exports. |
 | `authentication_locales()` | Built-in Fluent resources for registering the auth package with a Dioxus i18n provider. |
-| `AuthenticationService` | Service boundary for status, login, logout, session expiration, browser WebAuthn checks, and native Windows WebAuthn checks. |
-| `AuthenticationStatus` | Rendered auth state, including the active passkey credential id to use as a database key after login. |
+| `AuthenticationService` | Service boundary for current session, status projection, login, logout, session expiration, browser WebAuthn checks, and native Windows WebAuthn checks. |
+| `AuthenticationSession` | Canonical service-layer session shape for local demo sessions now and Dioxus fullstack request sessions later. |
+| `AuthenticationStatus` | Rendered auth state projected from `AuthenticationSession`, including the active passkey credential id to use as a database key after login. |
 | `AuthenticationProvider` | Provider option model with an id and display text for the one-choice provider bar. |
 | `AuthenticationPasskeyConfig` | Passkey registration metadata for app id, relying-party name, user name, and user display name. |
 | Session time format | Short local timestamp using 24-hour time with timezone shown onscreen. |
@@ -91,3 +92,11 @@ Passkey RP and user metadata are now supplied in the flow before calling
 | `app_id` | `my_app_id` | Keep it stable to reuse the demo key; change it to force new local test credentials. |
 | `passkey_database_key` | Generated credential id | Exposed on `AuthenticationStatus` after login so an app can key related demo data. |
 | `providers` | `PassKey` | Renders the provider radio bar and passes the selected provider id into login. |
+
+## Session Flow
+
+`AuthenticationService::current_session` returns `AuthenticationSession`, then
+`AuthenticationStatus::from_session` keeps the existing view-facing status API
+stable. The current web and desktop demo backends still use local passkey
+session state, while a production Dioxus fullstack app can replace that backend
+with request-extracted server sessions without changing `AuthenticationView`.

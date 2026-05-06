@@ -178,6 +178,7 @@ dependencies = [
  "dioxus-i18n",
  "dioxus-primitives",
  "futures",
+ "futures-channel",
  "getrandom 0.3.4",
  "js-sys",
  "serde",
@@ -935,6 +936,7 @@ dependencies = [
 name = "desktop"
 version = "0.1.0"
 dependencies = [
+ "authentication",
  "dioxus",
  "ui",
 ]

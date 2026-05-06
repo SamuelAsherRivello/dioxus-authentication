@@ -57,8 +57,9 @@ The static web build is exported and hosted automatically with each push to the 
 | `AuthenticationConfirmationPrompt` | Optional localized confirmation dialog for apps that want the package-owned logout prompt. |
 | `prelude` | Short import module for common component, service, config, provider, locale, and constant exports. |
 | `authentication_locales()` | Built-in auth Fluent resources for app-level `dioxus-i18n` setup. |
-| `AuthenticationService` | Async service boundary for current status, login, logout, session expiration, and platform support checks. |
-| `AuthenticationStatus` | Rendered auth state, including the active passkey credential id to use as a database key after login. |
+| `AuthenticationService` | Async service boundary for current session, current status, login, logout, session expiration, and platform support checks. |
+| `AuthenticationSession` | Canonical service-layer session shape that can be backed by local demo state today or a Dioxus fullstack request session later. |
+| `AuthenticationStatus` | Rendered auth state projected from `AuthenticationSession`, including the active passkey credential id to use as a database key after login. |
 | `AuthenticationSessionConfig` | Small configuration type for the local demo session lifetime. |
 | `AuthenticationProvider` | Provider option model with an id and localized display text for the one-choice provider bar. |
 | `AuthenticationPasskeyConfig` | Passkey prompt metadata for app id, relying-party name, account name, and friendly display name. |
@@ -119,7 +120,7 @@ fn Home() -> Element {
 | `AuthenticationProvider` | `AuthenticationViewConfig` | Provider id and localized display text render as a radio choice; `PassKey` is the only built-in value for now. |
 | Browser/OS prompt chrome | Secure origin and platform UI | Not fully customizable; the prompt may still show the current domain, such as `localhost`. |
 
-The local demo creates a new demo credential when `AuthenticationPasskeyConfig` values change. Keep `app_id = "my_app_id"` stable to reuse the demo key, or randomize it while testing to force a fresh local passkey flow. After login, `AuthenticationStatus.passkey_database_key` exposes the stored credential id that can key a local demo database row.
+The local demo creates a new demo credential when `AuthenticationPasskeyConfig` values change. Keep `app_id = "my_app_id"` stable to reuse the demo key, or randomize it while testing to force a fresh local passkey flow. After login, `AuthenticationService::current_session` returns the canonical session and `AuthenticationStatus.passkey_database_key` exposes the stored credential id that can key a local demo database row.
 
 ## Demo
 
@@ -144,7 +145,7 @@ The lightest path is to copy only the reusable package and then reference it fro
 | 4 | Register the package Fluent resources with your app's single `dioxus-i18n` provider, then render `AuthenticationView { config }` from any routed page or shell component. |
 | 5 | Replace the local demo session behavior with server-issued challenges and server-side verification before trusting passkeys in production. |
 
-Production passkey auth should add server challenge generation, server-side verification, persistent user records, and tamper-resistant sessions. This repo keeps those concerns behind `AuthenticationService` so the component can stay stable while the backend becomes real.
+Production passkey auth should add server challenge generation, server-side verification, persistent user records, and tamper-resistant sessions. Dioxus 0.7 does not provide built-in auth management today; its fullstack guidance is to attach sessions at the server/router layer and read them through server-only extractors. This repo keeps those concerns behind `AuthenticationService` and the canonical `AuthenticationSession` type so the component can stay stable while the backend becomes real.
 
 ## Details
 
@@ -187,7 +188,7 @@ The demo entrypoints render the authentication package directly. The reusable co
 | # | Feature | In Project? | Usage |
 | - | ------- | ----------- | ----- |
 | 1 | Reusable Dioxus auth component | ✅ | [`AuthenticationView`](./packages/dioxus-authentication-component/src/view/authentication_view.rs) renders the auth card and login/logout stateful controls with styling. |
-| 2 | Auth service boundary | ✅ | [`AuthenticationService`](./packages/dioxus-authentication-component/src/services/authentication_service.rs) owns status, login, logout, expiration, and platform support checks. |
+| 2 | Auth service boundary | ✅ | [`AuthenticationService`](./packages/dioxus-authentication-component/src/services/authentication_service.rs) owns current session, status projection, login, logout, expiration, and platform support checks. |
 | 3 | Browser passkey demo | ✅ | Web builds use typed WebAuthn browser APIs through `web-sys`, keyed by stable `app_id` demo storage, and expose the stored credential id after login. |
 | 4 | Prompt orchestration | ✅ | `AuthenticationView` receives status and action callbacks while `AuthenticationConfirmationPrompt` remains an optional package component. |
 | 5 | Provider selection | ✅ | `AuthenticationViewConfig` accepts provider options and renders a radio bar; `PassKey` is the only provider today. |
@@ -195,9 +196,10 @@ The demo entrypoints render the authentication package directly. The reusable co
 | 7 | Desktop support | ✅ | Windows desktop builds compile and run with native Win32 WebAuthn passkey registration, assertion, session status, and logout. |
 | 8 | Four-language auth localization | ✅ | `packages/dioxus-authentication-component/assets/i18n` ships separate English, Spanish, Portuguese, and French Fluent bundles. |
 | 9 | Shared template UI crate | ✅ | `packages/ui` owns routes, localization, shell controls, and demo page composition for both web and desktop. |
-| 10 | Production server verification | ❌ | Future work should wire Dioxus fullstack server functions to `webauthn-rs` or another production passkey backend. |
-| 11 | Username/password auth | ❌ | Intentionally out of scope for this passkey-first component. |
-| 12 | Social login | ❌ | Intentionally out of scope for this passkey-first component. |
+| 10 | Canonical session type | ✅ | `AuthenticationSession` is the service-layer auth shape that `AuthenticationStatus` projects for the current component UI. |
+| 11 | Production server verification | ❌ | Future work should wire Dioxus fullstack server functions, request-extracted sessions, and `webauthn-rs` or another production passkey backend. |
+| 12 | Username/password auth | ❌ | Intentionally out of scope for this passkey-first component. |
+| 13 | Social login | ❌ | Intentionally out of scope for this passkey-first component. |
 
 ## Credits
 

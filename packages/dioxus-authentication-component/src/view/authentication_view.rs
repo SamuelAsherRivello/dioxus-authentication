@@ -21,6 +21,9 @@ const AUTH_INSTRUCTION_CLASS: &str = "auth-card__instruction";
 const AUTH_PROVIDER_BAR_CLASS: &str = "auth-card__provider-bar";
 const AUTH_PROVIDER_LABEL_CLASS: &str = "auth-card__provider-label";
 const AUTH_PROVIDER_TAB_CLASS: &str = "auth-card__provider-tab";
+const AUTH_USER_KEY_CLASS: &str = "auth-card__user-key";
+const AUTH_USER_KEY_LABEL_CLASS: &str = "auth-card__user-key-label";
+const AUTH_USER_KEY_VALUE_CLASS: &str = "auth-card__user-key-value";
 const AUTH_ACTIONS_CLASS: &str = "auth-card__button-menu";
 const AUTH_PRIMARY_BUTTON_CLASS: &str = "auth-button auth-button--primary";
 const AUTH_SECONDARY_BUTTON_CLASS: &str = "auth-button auth-button--secondary";
@@ -90,6 +93,11 @@ pub fn AuthenticationView(config: AuthenticationViewConfig) -> Element {
         Some(Err(_)) => t!("auth-detail.error"),
         None => t!("auth-detail.checking"),
     };
+    let passkey_database_key = current_status
+        .as_ref()
+        .and_then(|result| result.as_ref().ok())
+        .filter(|status| status.is_authenticated)
+        .and_then(|status| status.passkey_database_key.clone());
     let status_badge_class = status_badge_class(&current_status);
     let has_provider = !selected_provider_id().is_empty();
 
@@ -124,6 +132,15 @@ pub fn AuthenticationView(config: AuthenticationViewConfig) -> Element {
                     index: 0usize,
                     value: selected_provider_id(),
                     p { class: AUTH_INSTRUCTION_CLASS, "{detail_text}" }
+                    if let Some(passkey_database_key) = passkey_database_key {
+                        div {
+                            class: AUTH_USER_KEY_CLASS,
+                            role: "region",
+                            aria_label: t!("auth-detail.user-key-label"),
+                            span { class: AUTH_USER_KEY_LABEL_CLASS, "{t!(\"auth-detail.user-key-label\")}: " }
+                            code { class: AUTH_USER_KEY_VALUE_CLASS, "{passkey_database_key}" }
+                        }
+                    }
                     div { class: AUTH_ACTIONS_CLASS,
                         button {
                             class: AUTH_PRIMARY_BUTTON_CLASS,
@@ -170,23 +187,13 @@ fn localized_detail_text(status: &AuthenticationStatus, expiration_hours: u32) -
     if status.is_authenticated {
         let method = localized_method_label(status.auth_method);
         if let Some(authenticated_at) = status.authenticated_at.as_deref() {
-            let mut detail_text = format!(
+            return format!(
                 "{} {method}.\n{}: {authenticated_at}\n{}: {expiration_hours} {}",
                 t!("auth-detail.logged-in-method-prefix"),
                 t!("auth-detail.timestamp-label"),
                 t!("auth-detail.expiration-label"),
                 t!("auth-detail.hours-unit")
             );
-
-            if let Some(passkey_database_key) = status.passkey_database_key.as_deref() {
-                detail_text.push_str("\n\n");
-                detail_text.push_str(&format!(
-                    "{}: {passkey_database_key}",
-                    t!("auth-detail.user-key-label")
-                ));
-            }
-
-            return detail_text;
         }
 
         return format!(

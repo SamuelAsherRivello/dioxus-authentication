@@ -28,6 +28,113 @@ pub struct AuthenticationStatus {
     pub auth_method: AuthenticationMethod,
 }
 
+impl AuthenticationStatus {
+    /// Projects a service-layer session into the existing view-facing status.
+    pub fn from_session(session: AuthenticationSession) -> Self {
+        Self {
+            is_authenticated: session.is_authenticated(),
+            login_supported: session.login_supported,
+            passkey_supported: session.passkey_supported,
+            authenticated_at: session.authenticated_at.clone(),
+            passkey_database_key: session.passkey_database_key.clone(),
+            auth_method: session.auth_method,
+        }
+    }
+}
+
+/// Canonical authentication session state returned by auth backends.
+///
+/// Dioxus fullstack apps normally attach a session to each server request and
+/// extract it inside server-only handlers. This type keeps that session shape
+/// explicit while the current demo continues to support local browser and
+/// Windows passkey sessions.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct AuthenticationSession {
+    /// `true` when the backend has an active authenticated session.
+    pub is_authenticated: bool,
+    /// `true` when the current renderer can initiate login.
+    pub login_supported: bool,
+    /// `true` when passkey APIs are available for this renderer.
+    pub passkey_supported: bool,
+    /// Display timestamp for the active authenticated session.
+    pub authenticated_at: Option<String>,
+    /// Stored passkey credential id or server-side user/session key.
+    pub passkey_database_key: Option<String>,
+    /// Authentication method used by the active backend.
+    pub auth_method: AuthenticationMethod,
+}
+
+impl AuthenticationSession {
+    pub fn new(
+        is_authenticated: bool,
+        login_supported: bool,
+        passkey_supported: bool,
+        authenticated_at: Option<String>,
+        passkey_database_key: Option<String>,
+        auth_method: AuthenticationMethod,
+    ) -> Self {
+        Self {
+            is_authenticated,
+            login_supported,
+            passkey_supported,
+            authenticated_at,
+            passkey_database_key,
+            auth_method,
+        }
+    }
+
+    pub fn authenticated(
+        authenticated_at: impl Into<String>,
+        passkey_database_key: Option<String>,
+        auth_method: AuthenticationMethod,
+    ) -> Self {
+        Self::new(
+            true,
+            true,
+            true,
+            Some(authenticated_at.into()),
+            passkey_database_key,
+            auth_method,
+        )
+    }
+
+    pub fn unauthenticated(
+        login_supported: bool,
+        passkey_supported: bool,
+        auth_method: AuthenticationMethod,
+    ) -> Self {
+        Self::new(
+            false,
+            login_supported,
+            passkey_supported,
+            None,
+            None,
+            auth_method,
+        )
+    }
+
+    pub fn unsupported_native() -> Self {
+        Self::unauthenticated(false, false, AuthenticationMethod::UnsupportedNative)
+    }
+
+    pub fn is_authenticated(&self) -> bool {
+        self.is_authenticated
+    }
+}
+
+impl From<AuthBackendStatus> for AuthenticationSession {
+    fn from(status: AuthBackendStatus) -> Self {
+        Self::new(
+            status.is_authenticated,
+            status.login_supported,
+            status.passkey_supported,
+            status.authenticated_at,
+            status.passkey_database_key,
+            status.auth_method,
+        )
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 struct AuthBackendStatus {
     is_authenticated: bool,
@@ -160,6 +267,20 @@ fn non_empty_or_default(value: String, fallback: &str) -> String {
 pub struct AuthenticationService;
 
 impl AuthenticationService {
+    /// Reads the canonical session state for the active target.
+    ///
+    /// Web builds currently derive this from the browser-local demo passkey
+    /// session. Windows desktop builds derive it from the native passkey
+    /// session. A Dioxus fullstack backend can keep this API stable while
+    /// swapping the implementation to request-extracted server sessions.
+    pub async fn current_session(
+        config: AuthenticationSessionConfig,
+    ) -> Result<AuthenticationSession, String> {
+        let status = auth_backend_status(config).await?;
+
+        Ok(status.into())
+    }
+
     /// Reads the current authentication state for the active target.
     ///
     /// Web builds inspect the browser WebAuthn-backed session. Windows desktop
@@ -167,16 +288,9 @@ impl AuthenticationService {
     pub async fn status(
         config: AuthenticationSessionConfig,
     ) -> Result<AuthenticationStatus, String> {
-        let status = auth_backend_status(config).await?;
-
-        Ok(AuthenticationStatus {
-            is_authenticated: status.is_authenticated,
-            login_supported: status.login_supported,
-            passkey_supported: status.passkey_supported,
-            authenticated_at: status.authenticated_at.clone(),
-            passkey_database_key: status.passkey_database_key.clone(),
-            auth_method: status.auth_method,
-        })
+        Self::current_session(config)
+            .await
+            .map(AuthenticationStatus::from_session)
     }
 
     /// Starts the login flow and returns the refreshed authentication state.
@@ -197,10 +311,12 @@ impl AuthenticationService {
         }
 
         if is_passkey_provider(provider) {
+            println!("AuthenticationService login dispatching to passkey backend.");
             auth_backend_login(passkey_config).await?;
         } else {
             return Err(format!("Unsupported authentication provider: {provider}"));
         }
+        println!("AuthenticationService login backend completed; refreshing status.");
         Self::status(config).await
     }
 
@@ -208,8 +324,20 @@ impl AuthenticationService {
     pub async fn logout(
         config: AuthenticationSessionConfig,
     ) -> Result<AuthenticationStatus, String> {
+        println!("AuthenticationService logout dispatching to backend.");
         auth_backend_logout(config.clone()).await?;
+        println!("AuthenticationService logout backend completed; refreshing status.");
         Self::status(config).await
+    }
+
+    /// Registers the native parent window handle used by operating-system
+    /// authentication prompts.
+    ///
+    /// Dioxus desktop apps should call this from the desktop entrypoint before
+    /// starting native passkey login. Web and unsupported native targets ignore
+    /// the value.
+    pub fn set_native_parent_window_handle(handle: isize) {
+        set_native_parent_window_handle(handle);
     }
 }
 
@@ -271,6 +399,10 @@ async fn auth_backend_status(
         .as_ref()
         .and_then(|_| windows_passkey::read_passkey_database_key(&app_id));
     let passkey_supported = windows_passkey::supported();
+    println!(
+        "Windows passkey status checked: supported={passkey_supported}, authenticated={}.",
+        authenticated_at.is_some()
+    );
 
     Ok(AuthBackendStatus {
         is_authenticated: authenticated_at.is_some(),
@@ -284,12 +416,30 @@ async fn auth_backend_status(
 
 #[cfg(all(not(target_arch = "wasm32"), target_os = "windows"))]
 async fn auth_backend_login(passkey_config: AuthenticationPasskeyConfig) -> Result<(), String> {
-    windows_passkey::login(passkey_config)
+    println!("Starting Windows passkey prompt thread.");
+    let (sender, receiver) = futures_channel::oneshot::channel();
+    std::thread::Builder::new()
+        .name("windows-webauthn-login".to_string())
+        .spawn(move || {
+            let _ = sender.send(windows_passkey::login(passkey_config));
+        })
+        .map_err(|error| format!("Could not start Windows passkey prompt thread: {error}"))?;
+
+    let result = receiver
+        .await
+        .map_err(|_| "Windows passkey prompt thread stopped before completing.".to_string())?;
+    println!("Windows passkey prompt thread returned.");
+    result
 }
 
 #[cfg(all(not(target_arch = "wasm32"), target_os = "windows"))]
 async fn auth_backend_logout(config: AuthenticationSessionConfig) -> Result<(), String> {
     windows_passkey::logout(config)
+}
+
+#[cfg(all(not(target_arch = "wasm32"), target_os = "windows"))]
+fn set_native_parent_window_handle(handle: isize) {
+    windows_passkey::set_parent_window_handle(handle);
 }
 
 #[cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))]
@@ -316,20 +466,28 @@ async fn auth_backend_logout(_config: AuthenticationSessionConfig) -> Result<(),
     Ok(())
 }
 
+#[cfg(any(
+    target_arch = "wasm32",
+    all(not(target_arch = "wasm32"), not(target_os = "windows"))
+))]
+fn set_native_parent_window_handle(_handle: isize) {}
+
 #[cfg(all(not(target_arch = "wasm32"), target_os = "windows"))]
 mod windows_passkey {
     use super::AuthenticationPasskeyConfig;
     use super::AuthenticationSessionConfig;
     use chrono::{Local, TimeZone};
     use serde::{Deserialize, Serialize};
+    use std::ffi::c_void;
     use std::fs;
     use std::path::PathBuf;
+    use std::sync::atomic::{AtomicIsize, Ordering};
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
     use windows::core::{w, BOOL, PCWSTR};
     use windows::Win32::Foundation::HWND;
     use windows::Win32::Networking::WindowsWebServices::{
         WebAuthNAuthenticatorGetAssertion, WebAuthNAuthenticatorMakeCredential,
-        WebAuthNFreeAssertion, WebAuthNFreeCredentialAttestation,
+        WebAuthNFreeAssertion, WebAuthNFreeCredentialAttestation, WebAuthNGetApiVersionNumber,
         WebAuthNIsUserVerifyingPlatformAuthenticatorAvailable,
         WEBAUTHN_ATTESTATION_CONVEYANCE_PREFERENCE_NONE,
         WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS,
@@ -348,6 +506,12 @@ mod windows_passkey {
 
     const RP_ID: PCWSTR = w!("localhost");
     const SESSION_FILE: &str = "data/authentication/native-passkey-session.json";
+    static PARENT_WINDOW_HANDLE: AtomicIsize = AtomicIsize::new(0);
+
+    pub fn set_parent_window_handle(handle: isize) {
+        println!("Registered Windows passkey parent HWND: {handle}.");
+        PARENT_WINDOW_HANDLE.store(handle, Ordering::Relaxed);
+    }
 
     pub fn read_session_authenticated_at(config: AuthenticationSessionConfig) -> Option<String> {
         let mut state = read_state().ok()?;
@@ -384,11 +548,13 @@ mod windows_passkey {
     }
 
     pub fn supported() -> bool {
-        unsafe {
+        let supported = unsafe {
             WebAuthNIsUserVerifyingPlatformAuthenticatorAvailable()
                 .map(|available| available.as_bool())
                 .unwrap_or(false)
-        }
+        };
+        println!("Windows WebAuthN platform authenticator supported: {supported}.");
+        supported
     }
 
     pub fn login(passkey_config: AuthenticationPasskeyConfig) -> Result<(), String> {
@@ -400,10 +566,14 @@ mod windows_passkey {
         if state.credential_id_hex.is_none()
             || state.passkey_config.as_ref() != Some(&passkey_config)
         {
+            println!("Opening Windows passkey registration prompt.");
             state.credential_id_hex = Some(make_credential(&passkey_config)?);
+            println!("Windows passkey registration completed.");
             state.passkey_config = Some(passkey_config);
         } else if let Some(credential_id_hex) = state.credential_id_hex.as_deref() {
+            println!("Opening Windows passkey verification prompt.");
             get_assertion(credential_id_hex)?;
+            println!("Windows passkey verification completed.");
         }
 
         state.authenticated_at_epoch_seconds = Some(current_epoch_seconds());
@@ -411,6 +581,7 @@ mod windows_passkey {
     }
 
     pub fn logout(config: AuthenticationSessionConfig) -> Result<(), String> {
+        println!("Clearing Windows passkey session state.");
         let mut state = read_state().unwrap_or_default();
         if state
             .passkey_config
@@ -425,6 +596,11 @@ mod windows_passkey {
     }
 
     fn make_credential(passkey_config: &AuthenticationPasskeyConfig) -> Result<String, String> {
+        let parent_window = parent_window_handle()?;
+        println!(
+            "Calling WebAuthNAuthenticatorMakeCredential with HWND {:?}.",
+            parent_window
+        );
         let challenge = random_bytes(32)?;
         let mut user_id = random_bytes(16)?;
         let mut client_data_json = client_data_json("webauthn.create", &challenge);
@@ -455,7 +631,7 @@ mod windows_passkey {
             pCredentialParameters: credential_parameters.as_mut_ptr(),
         };
         let options = WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS {
-            dwVersion: WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_CURRENT_VERSION,
+            dwVersion: make_credential_options_version(webauthn_api_version()),
             dwTimeoutMilliseconds: 60_000,
             bRequireResidentKey: BOOL(0),
             dwUserVerificationRequirement: WEBAUTHN_USER_VERIFICATION_REQUIREMENT_REQUIRED,
@@ -465,7 +641,7 @@ mod windows_passkey {
 
         let attestation = unsafe {
             WebAuthNAuthenticatorMakeCredential(
-                HWND(std::ptr::null_mut()),
+                parent_window,
                 &rp,
                 &user,
                 &parameters,
@@ -474,6 +650,7 @@ mod windows_passkey {
             )
             .map_err(|error| format!("Windows passkey registration failed: {error}"))?
         };
+        println!("WebAuthNAuthenticatorMakeCredential returned success.");
 
         if attestation.is_null() {
             return Err("Windows passkey registration did not return a credential.".to_string());
@@ -494,6 +671,11 @@ mod windows_passkey {
     }
 
     fn get_assertion(credential_id_hex: &str) -> Result<(), String> {
+        let parent_window = parent_window_handle()?;
+        println!(
+            "Calling WebAuthNAuthenticatorGetAssertion with HWND {:?}.",
+            parent_window
+        );
         let mut credential_id = decode_bytes(credential_id_hex)?;
         let challenge = random_bytes(32)?;
         let mut client_data_json = client_data_json("webauthn.get", &challenge);
@@ -509,7 +691,7 @@ mod windows_passkey {
             pCredentials: &mut credential,
         };
         let options = WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS {
-            dwVersion: WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_CURRENT_VERSION,
+            dwVersion: get_assertion_options_version(webauthn_api_version()),
             dwTimeoutMilliseconds: 60_000,
             CredentialList: credentials,
             dwUserVerificationRequirement: WEBAUTHN_USER_VERIFICATION_REQUIREMENT_REQUIRED,
@@ -517,14 +699,10 @@ mod windows_passkey {
         };
 
         let assertion = unsafe {
-            WebAuthNAuthenticatorGetAssertion(
-                HWND(std::ptr::null_mut()),
-                RP_ID,
-                &client_data,
-                Some(&options),
-            )
-            .map_err(|error| format!("Windows passkey verification failed: {error}"))?
+            WebAuthNAuthenticatorGetAssertion(parent_window, RP_ID, &client_data, Some(&options))
+                .map_err(|error| format!("Windows passkey verification failed: {error}"))?
         };
+        println!("WebAuthNAuthenticatorGetAssertion returned success.");
 
         if assertion.is_null() {
             return Err("Windows passkey verification did not return an assertion.".to_string());
@@ -534,6 +712,20 @@ mod windows_passkey {
             WebAuthNFreeAssertion(assertion);
         }
         Ok(())
+    }
+
+    fn parent_window_handle() -> Result<HWND, String> {
+        hwnd_from_isize(PARENT_WINDOW_HANDLE.load(Ordering::Relaxed)).ok_or_else(|| {
+            "Windows passkey verification needs a desktop window handle.".to_string()
+        })
+    }
+
+    fn hwnd_from_isize(handle: isize) -> Option<HWND> {
+        if handle == 0 {
+            None
+        } else {
+            Some(HWND(handle as *mut c_void))
+        }
     }
 
     fn credential_parameter(algorithm: i32) -> WEBAUTHN_COSE_CREDENTIAL_PARAMETER {
@@ -560,9 +752,61 @@ mod windows_passkey {
     fn client_data_json(operation: &str, challenge: &[u8]) -> Vec<u8> {
         format!(
             "{{\"type\":\"{operation}\",\"challenge\":\"{}\",\"origin\":\"https://localhost\",\"crossOrigin\":false}}",
-            encode_bytes(challenge)
+            encode_base64url(challenge)
         )
         .into_bytes()
+    }
+
+    fn encode_base64url(bytes: &[u8]) -> String {
+        const ALPHABET: &[u8; 64] =
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        let mut encoded = String::with_capacity((bytes.len() * 4).div_ceil(3));
+
+        for chunk in bytes.chunks(3) {
+            let b0 = chunk[0];
+            let b1 = *chunk.get(1).unwrap_or(&0);
+            let b2 = *chunk.get(2).unwrap_or(&0);
+
+            encoded.push(ALPHABET[(b0 >> 2) as usize] as char);
+            encoded.push(ALPHABET[(((b0 & 0b0000_0011) << 4) | (b1 >> 4)) as usize] as char);
+
+            if chunk.len() > 1 {
+                encoded.push(ALPHABET[(((b1 & 0b0000_1111) << 2) | (b2 >> 6)) as usize] as char);
+            }
+
+            if chunk.len() > 2 {
+                encoded.push(ALPHABET[(b2 & 0b0011_1111) as usize] as char);
+            }
+        }
+
+        encoded
+    }
+
+    fn webauthn_api_version() -> u32 {
+        unsafe { WebAuthNGetApiVersionNumber() }
+    }
+
+    fn make_credential_options_version(api_version: u32) -> u32 {
+        let supported_version = match api_version {
+            0..=2 => 3,
+            3 => 4,
+            4 | 5 => 5,
+            6 => 6,
+            _ => api_version,
+        };
+
+        supported_version.min(WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_CURRENT_VERSION)
+    }
+
+    fn get_assertion_options_version(api_version: u32) -> u32 {
+        let supported_version = match api_version {
+            0..=2 => 4,
+            3 => 5,
+            4..=6 => 6,
+            _ => api_version,
+        };
+
+        supported_version.min(WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_CURRENT_VERSION)
     }
 
     fn read_state() -> Result<NativePasskeyState, String> {
@@ -649,6 +893,84 @@ mod windows_passkey {
                     .map_err(|_| "Stored Windows passkey credential id is malformed.".to_string())
             })
             .collect()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn make_credential_options_version_matches_runtime_api_capability() {
+            assert_eq!(make_credential_options_version(1), 3);
+            assert_eq!(make_credential_options_version(2), 3);
+            assert_eq!(make_credential_options_version(3), 4);
+            assert_eq!(make_credential_options_version(4), 5);
+            assert_eq!(make_credential_options_version(5), 5);
+            assert_eq!(make_credential_options_version(6), 6);
+            assert_eq!(
+                make_credential_options_version(999),
+                WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_CURRENT_VERSION
+            );
+        }
+
+        #[test]
+        fn get_assertion_options_version_matches_runtime_api_capability() {
+            assert_eq!(get_assertion_options_version(1), 4);
+            assert_eq!(get_assertion_options_version(2), 4);
+            assert_eq!(get_assertion_options_version(3), 5);
+            assert_eq!(get_assertion_options_version(4), 6);
+            assert_eq!(get_assertion_options_version(5), 6);
+            assert_eq!(get_assertion_options_version(6), 6);
+            assert_eq!(
+                get_assertion_options_version(999),
+                WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_CURRENT_VERSION
+            );
+        }
+
+        #[test]
+        fn hwnd_from_isize_rejects_null_handle() {
+            assert_eq!(hwnd_from_isize(0), None);
+        }
+
+        #[test]
+        fn hwnd_from_isize_preserves_non_null_handle() {
+            let hwnd = hwnd_from_isize(1234).expect("non-null handles should be accepted");
+
+            assert_eq!(hwnd.0 as isize, 1234);
+        }
+
+        #[test]
+        fn parent_window_handle_uses_registered_desktop_handle() {
+            set_parent_window_handle(0);
+            assert_eq!(
+                parent_window_handle()
+                    .expect_err("native passkey calls must reject null parent windows"),
+                "Windows passkey verification needs a desktop window handle."
+            );
+
+            set_parent_window_handle(5678);
+            let hwnd = parent_window_handle()
+                .expect("registered desktop handles should be passed to Windows WebAuthn");
+
+            assert_eq!(hwnd.0 as isize, 5678);
+        }
+
+        #[test]
+        fn encode_base64url_uses_webauthn_challenge_encoding_without_padding() {
+            assert_eq!(encode_base64url(&[]), "");
+            assert_eq!(encode_base64url(&[0, 1, 2]), "AAEC");
+            assert_eq!(encode_base64url(&[251, 239]), "--8");
+            assert_eq!(encode_base64url(&[255]), "_w");
+        }
+
+        #[test]
+        fn client_data_json_embeds_base64url_challenge() {
+            let json = String::from_utf8(client_data_json("webauthn.create", &[251, 239]))
+                .expect("client data should be valid utf-8");
+
+            assert!(json.contains("\"challenge\":\"--8\""));
+            assert!(!json.contains("\"challenge\":\"fbef\""));
+        }
     }
 }
 
@@ -1087,13 +1409,15 @@ mod tests {
 
     #[test]
     fn authentication_status_exposes_state_without_display_text() {
-        let status = backend_status(
-            true,
-            true,
-            true,
-            Some("05/04/2026, 15:30 GMT-3"),
-            AuthenticationMethod::WebPasskey,
-        );
+        let status =
+            AuthenticationStatus::from_session(AuthenticationSession::from(backend_status(
+                true,
+                true,
+                true,
+                Some("05/04/2026, 15:30 GMT-3"),
+                Some("credential-123"),
+                AuthenticationMethod::WebPasskey,
+            )));
 
         assert!(status.is_authenticated);
         assert!(status.login_supported);
@@ -1102,7 +1426,111 @@ mod tests {
             status.authenticated_at.as_deref(),
             Some("05/04/2026, 15:30 GMT-3")
         );
+        assert_eq!(
+            status.passkey_database_key.as_deref(),
+            Some("credential-123")
+        );
         assert_eq!(status.auth_method, AuthenticationMethod::WebPasskey);
+    }
+
+    #[test]
+    fn authentication_session_projects_to_existing_status_shape() {
+        let session = AuthenticationSession::authenticated(
+            "05/06/2026, 09:45 GMT-3",
+            Some("credential-abc".to_string()),
+            AuthenticationMethod::WindowsPasskey,
+        );
+
+        let status = AuthenticationStatus::from_session(session);
+
+        assert!(status.is_authenticated);
+        assert!(status.login_supported);
+        assert!(status.passkey_supported);
+        assert_eq!(
+            status.authenticated_at.as_deref(),
+            Some("05/06/2026, 09:45 GMT-3")
+        );
+        assert_eq!(
+            status.passkey_database_key.as_deref(),
+            Some("credential-abc")
+        );
+        assert_eq!(status.auth_method, AuthenticationMethod::WindowsPasskey);
+    }
+
+    #[test]
+    fn unauthenticated_session_keeps_login_capability_flags() {
+        let session =
+            AuthenticationSession::unauthenticated(true, false, AuthenticationMethod::WebPasskey);
+
+        let status = AuthenticationStatus::from_session(session);
+
+        assert!(!status.is_authenticated);
+        assert!(status.login_supported);
+        assert!(!status.passkey_supported);
+        assert_eq!(status.authenticated_at, None);
+        assert_eq!(status.passkey_database_key, None);
+        assert_eq!(status.auth_method, AuthenticationMethod::WebPasskey);
+    }
+
+    #[test]
+    fn unsupported_native_session_matches_existing_unavailable_status() {
+        let status =
+            AuthenticationStatus::from_session(AuthenticationSession::unsupported_native());
+
+        assert!(!status.is_authenticated);
+        assert!(!status.login_supported);
+        assert!(!status.passkey_supported);
+        assert_eq!(status.authenticated_at, None);
+        assert_eq!(status.passkey_database_key, None);
+        assert_eq!(status.auth_method, AuthenticationMethod::UnsupportedNative);
+    }
+
+    #[test]
+    fn backend_status_maps_into_canonical_session_without_losing_fields() {
+        let session = AuthenticationSession::from(backend_status(
+            true,
+            true,
+            true,
+            Some("05/06/2026, 12:00 GMT-3"),
+            Some("credential-from-backend"),
+            AuthenticationMethod::WebPasskey,
+        ));
+
+        assert!(session.is_authenticated());
+        assert!(session.login_supported);
+        assert!(session.passkey_supported);
+        assert_eq!(
+            session.authenticated_at.as_deref(),
+            Some("05/06/2026, 12:00 GMT-3")
+        );
+        assert_eq!(
+            session.passkey_database_key.as_deref(),
+            Some("credential-from-backend")
+        );
+        assert_eq!(session.auth_method, AuthenticationMethod::WebPasskey);
+    }
+
+    #[test]
+    fn canonical_session_can_represent_authenticated_server_session_without_display_timestamp() {
+        let session = AuthenticationSession::new(
+            true,
+            true,
+            true,
+            None,
+            Some("server-session-user-42".to_string()),
+            AuthenticationMethod::WebPasskey,
+        );
+
+        let status = AuthenticationStatus::from_session(session);
+
+        assert!(status.is_authenticated);
+        assert!(status.login_supported);
+        assert!(status.passkey_supported);
+        assert_eq!(status.authenticated_at, None);
+        assert_eq!(
+            status.passkey_database_key.as_deref(),
+            Some("server-session-user-42")
+        );
     }
 
     fn backend_status(
@@ -1110,6 +1538,7 @@ mod tests {
         login_supported: bool,
         passkey_supported: bool,
         authenticated_at: Option<&str>,
+        passkey_database_key: Option<&str>,
         auth_method: AuthenticationMethod,
     ) -> AuthBackendStatus {
         AuthBackendStatus {
@@ -1117,7 +1546,7 @@ mod tests {
             login_supported,
             passkey_supported,
             authenticated_at: authenticated_at.map(str::to_string),
-            passkey_database_key: None,
+            passkey_database_key: passkey_database_key.map(str::to_string),
             auth_method,
         }
     }

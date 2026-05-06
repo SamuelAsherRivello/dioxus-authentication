@@ -430,7 +430,7 @@ textarea {
     width: fit-content;
     height: auto;
     max-width: calc(100vw - 32px);
-    min-width: 0;
+    min-width: min(600px, calc(100vw - 32px));
     overflow: hidden;
     gap: 18px;
     padding: 24px;
@@ -448,6 +448,7 @@ textarea {
     box-sizing: border-box;
     width: fit-content;
     max-width: 100%;
+    min-width: min(600px, 100%);
     height: auto;
     max-height: none;
     align-content: start;
@@ -619,6 +620,7 @@ textarea {
     .home-auth-embed,
     .home-auth-embed > .auth-card {
         width: calc(100vw - 40px);
+        min-width: 0;
     }
 }
 

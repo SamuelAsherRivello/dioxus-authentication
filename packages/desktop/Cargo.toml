@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+authentication = { workspace = true }
 dioxus = { workspace = true, features = ["router"] }
 ui = { workspace = true }
 

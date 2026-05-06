@@ -55,6 +55,7 @@ pub fn HomePage() -> Element {
     // Callbacks
     let session_config_for_login = session_config.clone();
     let on_login = EventHandler::new(move |provider_id: String| {
+        println!("Authentication login clicked with provider `{provider_id}`.");
         auth_is_busy.set(true);
         let auth_is_busy = auth_is_busy;
         let auth_prompt_message = auth_prompt_message;
@@ -71,10 +72,12 @@ pub fn HomePage() -> Element {
         spawn(async move {
             match AuthenticationService::login(session_config, provider_id, passkey_config).await {
                 Ok(next_status) => {
+                    println!("Authentication login completed successfully.");
                     auth_status_for_task.set(Some(Ok(next_status)));
                     auth_prompt_message_for_task.set(Some(logged_in_prompt_for_task));
                 }
-                Err(_) => {
+                Err(error) => {
+                    println!("Authentication login failed: {error}");
                     if let Ok(next_status) =
                         AuthenticationService::status(session_config_for_refresh).await
                     {
@@ -82,7 +85,9 @@ pub fn HomePage() -> Element {
                     } else {
                         auth_status_for_task.set(prior_status.clone());
                     }
-                    auth_prompt_message_for_task.set(Some(operation_failed_prompt_for_task));
+                    auth_prompt_message_for_task.set(Some(format!(
+                        "{operation_failed_prompt_for_task}\n\n{error}"
+                    )));
                 }
             }
             auth_is_busy_for_task.set(false);
@@ -90,6 +95,7 @@ pub fn HomePage() -> Element {
     });
 
     let on_logout = EventHandler::new(move |_| {
+        println!("Authentication logout clicked; opening confirmation prompt.");
         is_logout_confirmation_open.set(true);
     });
 
@@ -99,6 +105,7 @@ pub fn HomePage() -> Element {
             return;
         }
 
+        println!("Authentication logout confirmed.");
         let auth_status = auth_status;
         let mut auth_is_busy = auth_is_busy;
         let auth_prompt_message = auth_prompt_message;
@@ -113,10 +120,12 @@ pub fn HomePage() -> Element {
         spawn(async move {
             match AuthenticationService::logout(session_config).await {
                 Ok(next_status) => {
+                    println!("Authentication logout completed successfully.");
                     auth_status_for_task.set(Some(Ok(next_status)));
                     auth_prompt_message_for_task.set(Some(logged_out_prompt_for_task));
                 }
                 Err(error) => {
+                    println!("Authentication logout failed: {error}");
                     auth_status_for_task.set(Some(Err(error)));
                     auth_prompt_message_for_task.set(Some(operation_failed_prompt_for_task));
                 }

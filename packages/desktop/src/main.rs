@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 
+use authentication::AuthenticationService;
 use ui::App as UiApp;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
@@ -25,9 +26,22 @@ fn app_title() -> String {
 
 #[component]
 fn App() -> Element {
+    register_native_parent_window_handle();
+
     rsx! {
         document::Link { rel: "stylesheet", href: MAIN_CSS }
 
         UiApp {}
     }
 }
+
+#[cfg(target_os = "windows")]
+fn register_native_parent_window_handle() {
+    use dioxus::desktop::tao::platform::windows::WindowExtWindows;
+
+    let window = dioxus::desktop::use_window();
+    AuthenticationService::set_native_parent_window_handle(window.hwnd());
+}
+
+#[cfg(not(target_os = "windows"))]
+fn register_native_parent_window_handle() {}

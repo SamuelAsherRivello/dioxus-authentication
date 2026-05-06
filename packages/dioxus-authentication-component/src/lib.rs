@@ -14,8 +14,8 @@ pub use providers::{
 };
 pub use services::authentication_service::{
     AuthenticationMethod, AuthenticationPasskeyConfig, AuthenticationService,
-    AuthenticationSessionConfig, AuthenticationStatus, DEFAULT_PASSKEY_APP_ID,
-    DEFAULT_PASSKEY_EXPIRATION_HOURS, DEFAULT_PASSKEY_RELYING_PARTY_NAME,
+    AuthenticationSession, AuthenticationSessionConfig, AuthenticationStatus,
+    DEFAULT_PASSKEY_APP_ID, DEFAULT_PASSKEY_EXPIRATION_HOURS, DEFAULT_PASSKEY_RELYING_PARTY_NAME,
     DEFAULT_PASSKEY_USER_DISPLAY_NAME, DEFAULT_PASSKEY_USER_NAME,
 };
 pub use view::authentication_confirmation_prompt::AuthenticationConfirmationPrompt;
@@ -27,9 +27,9 @@ pub mod prelude {
         authentication_locales, default_authentication_locale, passkey_provider,
         AuthenticationConfirmationPrompt, AuthenticationLocaleResource, AuthenticationMethod,
         AuthenticationPasskeyConfig, AuthenticationProvider, AuthenticationProviderContract,
-        AuthenticationService, AuthenticationSessionConfig, AuthenticationStatus,
-        AuthenticationView, AuthenticationViewConfig, AUTH_EN_US, AUTH_ES_MX, AUTH_FR_FR,
-        AUTH_PT_BR, DEFAULT_PASSKEY_APP_ID, DEFAULT_PASSKEY_EXPIRATION_HOURS,
+        AuthenticationService, AuthenticationSession, AuthenticationSessionConfig,
+        AuthenticationStatus, AuthenticationView, AuthenticationViewConfig, AUTH_EN_US, AUTH_ES_MX,
+        AUTH_FR_FR, AUTH_PT_BR, DEFAULT_PASSKEY_APP_ID, DEFAULT_PASSKEY_EXPIRATION_HOURS,
         DEFAULT_PASSKEY_RELYING_PARTY_NAME, DEFAULT_PASSKEY_USER_DISPLAY_NAME,
         DEFAULT_PASSKEY_USER_NAME, PASSKEY_PROVIDER_ID,
     };
